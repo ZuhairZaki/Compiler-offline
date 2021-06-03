@@ -239,7 +239,9 @@ expression_statement 	: SEMICOLON
 			;
 	  
 variable : ID 
-			{
+			{	
+				logFile<<"Line "<<yylineno<<": variable : ID"<<endl;
+
 				string varType = $1->getDataType();
 
 				if(varType == "NO_TYPE"){
@@ -256,7 +258,9 @@ variable : ID
 				$$ = $1;
 			}		
 	 | ID LTHIRD expression RTHIRD 
-	 	{
+	 	{	
+			logFile<<"Line "<<yylineno<<": variable : ID LTHIRD expression RTHIRD "<<endl;
+
 			string varType = $1->getDataType();
 			int n = $1->getArrSize();
 
@@ -296,53 +300,84 @@ term :	unary_expression
      ;
 
 unary_expression : ADDOP unary_expression  
-					{
+					{	
+						logFile<<"Line no "<<yylineno<<": unary_expression : ADDOP unary_expression"<<endl;
+
 						$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
 						$$->setDataType($2->getDataType());
 					}
 		 | NOT unary_expression 
-				{
+				{	
+					logFile<<"Line no "<<yylineno<<": unary_expression : NOT unary_expression"<<endl;
+
 					$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
 					$$->setDataType($2->getDataType());
 				}
 		 | factor 
-		 		{
+		 		{	
+					logFile<<"Line no "<<yylineno<<": unary_expression : factor"<<endl;
+
 					$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
 					$$->setDataType($1->getDataType());
 				}
 		 ;
 	
-factor	: variable {
+factor  : variable {	
+						logFile<<"Line no "<<yylineno<<": factor : variable"<<endl;
+
 						$$ = new SymbolInfo("factor","NON_TERMINAL");
 						$$->setDataType($1->getDataType());
 				}
 	| ID LPAREN argument_list RPAREN 
-				{
+				{	
+					logFile<<"Line no "<<yylineno<<": factor : ID LPAREN argument_list RPAREN"<<endl;
+
+					string varType = $1->getDataType();
 					$$ = new SymbolInfo("factor","NON_TERMINAL");
-					$$->setDataType($1->getDataType());
+
+					if(varType=="NO_TYPE"){
+						error_count++;
+						errorFile<<"Error at line no "<<yylineno<<": Undeclared function "<<$1->getName()<<endl;
+					}
+					else if(!$1->isFunc){
+						error_count++;
+						errorFile<<"Error at line no "<<yylineno<<": "<<$1->getName()<<" is not a function"<<endl;
+					}
+
+					$$->setDataType(varType);
 				}
 	| LPAREN expression RPAREN
-				{
+				{	
+					logFile<<"Line no "<<yylineno<<": factor : LPAREN expression RPAREN"<<endl;
+
 					$$ = new SymbolInfo("factor","NON_TERMINAL");
 					$$->setDataType($2->getDataType());
 				}
 	| CONST_INT 
-			{
+			{	
+				logFile<<"Line no "<<yylineno<<": factor : CONST_INT"<<endl;
+
 				$$ = new SymbolInfo("factor","NON_TERMINAL");
 				$$->setDataType("INT");
 			}
 	| CONST_FLOAT
-			{
+			{	
+				logFile<<"Line no "<<yylineno<<": factor : CONST_FLOAT"<<endl;
+
 				$$ = new SymbolInfo("factor","NON_TERMINAL");
 				$$->setDataType("FLOAT");
 			}
 	| variable INCOP 
-			{
+			{	
+				logFile<<"Line no "<<yylineno<<": factor : variable INCOP"<<endl;
+
 				$$ = new SymbolInfo("factor","NON_TERMINAL");
 				$$->setDataType($1->getDataType());
 			}
 	| variable DECOP
-			{
+			{	
+				logFile<<"Line no "<<yylineno<<": factor : variable DECOP"<<endl;
+
 				$$ = new SymbolInfo("factor","NON_TERMINAL");
 				$$->setDataType($1->getDataType());
 			}
