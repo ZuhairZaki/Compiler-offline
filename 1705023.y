@@ -79,7 +79,29 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 		;
 		 
 func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement
-		| type_specifier ID LPAREN RPAREN compound_statement
+		| type_specifier ID LPAREN RPAREN compound_statement 
+			{
+				logFile<<"Line "<<yylineno<<": type_specifier ID LPAREN RPAREN compound_statement"<<endl;
+
+				string varType = $2->getDataType();
+
+				if(varType=="NO_TYPE"){
+					$2->isFunc = true;
+					symTab->Insert($2);
+					$2->setDataType($1->getName());
+				}
+				else{
+					error_count++;
+					if($2->isFunc){
+						errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a function"<<endl;
+					}
+					else{
+						errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
+					}
+				}
+
+				delete $1;
+			}
  		;				
 
 
@@ -92,6 +114,9 @@ parameter_list  : parameter_list COMMA type_specifier ID
  		
 compound_statement : LCURL statements RCURL
  		    | LCURL RCURL
+			 {
+				 logFile<<"Line "<<yylineno<<": compound_statement : LCURL RCURL"<<endl;
+			 }
  		    ;
  		    
 var_declaration : type_specifier declaration_list SEMICOLON 
@@ -102,16 +127,29 @@ var_declaration : type_specifier declaration_list SEMICOLON
 
 						SymbolInfo* head = $2;
 
-						while(head!=NULL){
-							SymbolInfo* item = new SymbolInfo(head->getName(),head->getType());
-							item->setDataType(varType);
+						if(varType=="VOID"){
+							error_count++;
 
-							if(!symTab->Insert(item)){
-								error_count++;
+							errorFile<<"Error at line "<<yylineno<<": Variable type cannot be VOID"<<endl;
 
-								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<head->getName()<<endl;
+							while($2!=NULL){
+								$2 = $2->nextInfoObj;
+								delete head;
+								head = $2;
 							}
-							head = head->nextInfoObj;
+						}
+						else{
+							while(head!=NULL){
+								SymbolInfo* item = new SymbolInfo(head->getName(),head->getType());
+								item->setDataType(varType);
+
+								if(!symTab->Insert(item)){
+									error_count++;
+
+									errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<head->getName()<<endl;
+								}
+								head = head->nextInfoObj;
+							}
 						}
 
 						delete $1;
@@ -135,12 +173,20 @@ type_specifier	: INT {
 declaration_list : declaration_list COMMA ID 
 					{	
 						logFile<<"Line "<<yylineno<<": declaration_list : declaration_list COMMA ID "<<endl;
-						$$ = insertItem($1,$3);
+
+						SymbolInfo* idObj = new SymbolInfo($3->getName(),$3->getType());
+
+						$$ = insertItem($1,idObj);
 					}
  		  | declaration_list COMMA ID LTHIRD CONST_INT RTHIRD 
 					{	
 						logFile<<"Line "<<yylineno<<": declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD "<<endl;
-						$$ = insertItem($1,$3);
+
+						int n = stoi($5->getName());
+						SymbolInfo* idObj = new SymbolInfo($3->getName(),$3->getType());
+						idObj->setArrSize(n);
+
+						$$ = insertItem($1,idObj);
 					}
  		  | ID {	
 			   		logFile<<"Line "<<yylineno<<": declaration_list : ID "<<endl;
@@ -158,6 +204,7 @@ declaration_list : declaration_list COMMA ID
 					logFile<<"Line "<<yylineno<<": declaration_list : ID LTHIRD CONST_INT RTHIRD "<<endl;
 
 					string varType = $1->getDataType();
+					int n = stoi($3->getName());
 
 					if(varType=="NO_TYPE"){
 						$$ = $1;
@@ -165,6 +212,10 @@ declaration_list : declaration_list COMMA ID
 					else{
 						$$ = new SymbolInfo($1->getName(),$1->getType());
 					}
+
+					$$->setArrSize(n);
+
+					delete $3;
 				}
  		  ;
  		  
@@ -187,8 +238,41 @@ expression_statement 	: SEMICOLON
 			| expression SEMICOLON 
 			;
 	  
-variable : ID 		
+variable : ID 
+			{
+				string varType = $1->getDataType();
+
+				if(varType == "NO_TYPE"){
+					error_count++;
+
+					errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl;
+				}
+				else if(n>=0){
+					error_count++;
+
+					errorFile<<"Error at line "<<yylineno<<": Array "<<$1->getName()<<" used without an index"<<endl;
+				}
+
+				$$ = $1;
+			}		
 	 | ID LTHIRD expression RTHIRD 
+	 	{
+			string varType = $1->getDataType();
+			int n = $1->getArrSize();
+
+			if(varType == "NO_TYPE"){
+				error_count++;
+
+				errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl;
+			}
+			else if(n==-1){
+				error_count++;
+
+				errorFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" not an array"<<endl;
+			}
+
+			$$ = $1;
+		}
 	 ;
 	 
  expression : logic_expression	
@@ -212,17 +296,56 @@ term :	unary_expression
      ;
 
 unary_expression : ADDOP unary_expression  
+					{
+						$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
+						$$->setDataType($2->getDataType());
+					}
 		 | NOT unary_expression 
+				{
+					$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
+					$$->setDataType($2->getDataType());
+				}
 		 | factor 
+		 		{
+					$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
+					$$->setDataType($1->getDataType());
+				}
 		 ;
 	
-factor	: variable 
-	| ID LPAREN argument_list RPAREN
+factor	: variable {
+						$$ = new SymbolInfo("factor","NON_TERMINAL");
+						$$->setDataType($1->getDataType());
+				}
+	| ID LPAREN argument_list RPAREN 
+				{
+					$$ = new SymbolInfo("factor","NON_TERMINAL");
+					$$->setDataType($1->getDataType());
+				}
 	| LPAREN expression RPAREN
+				{
+					$$ = new SymbolInfo("factor","NON_TERMINAL");
+					$$->setDataType($2->getDataType());
+				}
 	| CONST_INT 
+			{
+				$$ = new SymbolInfo("factor","NON_TERMINAL");
+				$$->setDataType("INT");
+			}
 	| CONST_FLOAT
+			{
+				$$ = new SymbolInfo("factor","NON_TERMINAL");
+				$$->setDataType("FLOAT");
+			}
 	| variable INCOP 
+			{
+				$$ = new SymbolInfo("factor","NON_TERMINAL");
+				$$->setDataType($1->getDataType());
+			}
 	| variable DECOP
+			{
+				$$ = new SymbolInfo("factor","NON_TERMINAL");
+				$$->setDataType($1->getDataType());
+			}
 	;
 	
 argument_list : arguments

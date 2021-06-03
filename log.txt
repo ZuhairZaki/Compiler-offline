@@ -1,15 +1,17 @@
 Line 1: type_specifier : INT
 Line 1: declaration_list : ID 
 Line 1: declaration_list : declaration_list COMMA ID 
-Line 1: declaration_list : declaration_list COMMA ID 
 Line 1: var_declaration : type_specifier declaration_list SEMICOLON
-Line 3: type_specifier : INT
-Line 3: declaration_list : ID 
-Line 3: var_declaration : type_specifier declaration_list SEMICOLON
+Line 3: type_specifier : VOID
+Line 3: compound_statement : LCURL RCURL
+Line 3: type_specifier ID LPAREN RPAREN compound_statement
+Line 5: type_specifier : INT
+Line 5: compound_statement : LCURL RCURL
+Line 5: type_specifier ID LPAREN RPAREN compound_statement
 ScopeTable # 1
- 0 --> < x : ID> 
- 1 --> < y : ID> 
- 2 --> < z : ID> 
+ 7 --> < a : ID> 
+ 8 --> < b : ID> 
+ 24 --> < foo : ID> 
 
-Total lines : 4
+Total lines : 6
 Total error : 1

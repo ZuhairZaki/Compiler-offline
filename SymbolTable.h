@@ -6,16 +6,25 @@ class SymbolInfo
 {
     string Name, Type;
     string dataType;
+    int arrSize;
 
 public:
+    bool isFunc;
     SymbolInfo* nextInfoObj;
 
-    SymbolInfo() {  nextInfoObj = NULL; dataType="NO_TYPE"; }
+    SymbolInfo() {  
+        nextInfoObj = NULL; dataType="NO_TYPE"; 
+        arrSize = -1;
+        isFunc = false;
+    }
+
     SymbolInfo(string name,string type){
         this->Name = name;
         this->Type = type;
         nextInfoObj = NULL;
         dataType = "NO_TYPE";
+        arrSize = -1;
+        isFunc = false;
     }
 
     void setName(string new_name){
@@ -26,6 +35,10 @@ public:
     }
     void setDataType(string new_type){
         dataType = new_type;
+    }
+
+    void setArrSize(int n){
+        arrSize = n;
     }
     
     string getName()
@@ -41,6 +54,14 @@ public:
     string getDataType()
     {
         return dataType;
+    }
+
+    int getArrSize(){
+        return arrSize;
+    }
+
+    ~SymbolInfo(){
+        //cout<<"Object freed"<<endl;
     }
 };
 
