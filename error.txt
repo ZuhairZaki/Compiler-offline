@@ -1,1 +1,6 @@
-Error at line 5: a is already declared as a variable
+Error at line 4: Variable type cannot be VOID
+Error at line 5: Multiple declaration of a
+Error at line 5: Multiple declaration of c
+Error at line 7: Undeclared variable k
+Error at line 8: b not an array
+Error at line 9: Expression inside third brackets not an integer

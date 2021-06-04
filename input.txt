@@ -1,5 +1,10 @@
-int a,b;
 
-void foo(){}
-
-int a(){}
+int main(){
+	int a,b,c[4],dd,ee;	
+	void e;
+	float a,c[7];
+	
+	k = 5+2;
+	b[5] = 7;
+	c[2.5] = 8;
+}

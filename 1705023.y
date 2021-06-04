@@ -57,7 +57,9 @@ SymbolInfo* insertItem(SymbolInfo* head,SymbolInfo* s)
 %%
 
 start : program 
-			{
+			{	
+				logFile<<"Line "<<yylineno<<": start : program"<<endl;
+
 				symTab->printAllScope(logFile);
 
 				logFile<<"Total lines : "<<yylineno<<endl;
@@ -65,13 +67,13 @@ start : program
 			}
 	;
 
-program : program unit 
-	| unit
+program : program unit { logFile<<"Line "<<yylineno<<": program : program unit"<<endl; }
+	| unit { logFile<<"Line "<<yylineno<<": program : unit"<<endl; }
 	;
 	
-unit : var_declaration
-     | func_declaration
-     | func_definition
+unit : var_declaration { logFile<<"Line "<<yylineno<<": unit : var_declaration"<<endl; }
+     | func_declaration {	logFile<<"Line "<<yylineno<<": unit : func_declaration"<<endl; }
+     | func_definition {	logFile<<"Line "<<yylineno<<": unit : func_definition"<<endl; }
      ;
      
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
@@ -87,8 +89,8 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
 
 				if(varType=="NO_TYPE"){
 					$2->isFunc = true;
-					symTab->Insert($2);
 					$2->setDataType($1->getName());
+					symTab->InsertIntoParent($2);
 				}
 				else{
 					error_count++;
@@ -100,6 +102,8 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statem
 					}
 				}
 
+				symTab->printAllScope(logFile);
+				symTab->exitScope();
 				delete $1;
 			}
  		;				
@@ -112,7 +116,10 @@ parameter_list  : parameter_list COMMA type_specifier ID
  		;
 
  		
-compound_statement : LCURL statements RCURL
+compound_statement : LCURL statements RCURL 
+						{
+							logFile<<"Line "<<yylineno<<": compound_statement : LCURL statements RCURL"<<endl;
+						}
  		    | LCURL RCURL
 			 {
 				 logFile<<"Line "<<yylineno<<": compound_statement : LCURL RCURL"<<endl;
@@ -142,6 +149,7 @@ var_declaration : type_specifier declaration_list SEMICOLON
 							while(head!=NULL){
 								SymbolInfo* item = new SymbolInfo(head->getName(),head->getType());
 								item->setDataType(varType);
+								item->setArrSize(head->getArrSize());
 
 								if(!symTab->Insert(item)){
 									error_count++;
@@ -219,12 +227,12 @@ declaration_list : declaration_list COMMA ID
 				}
  		  ;
  		  
-statements : statement
-	   | statements statement
+statements : statement {	logFile<<"Line "<<yylineno<<": statements : statement"<<endl;	}
+	   | statements statement {	  logFile<<"Line "<<yylineno<<": statements : statements statement"<<endl;	}
 	   ;
 	   
-statement : var_declaration
-	  | expression_statement
+statement : var_declaration { logFile<<"Line "<<yylineno<<": statement : var_declaration"<<endl; }
+	  | expression_statement {	logFile<<"Line "<<yylineno<<": statement : expression_statement"<<endl; }
 	  | compound_statement
 	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement
 	  | IF LPAREN expression RPAREN statement %prec THEN
@@ -234,8 +242,8 @@ statement : var_declaration
 	  | RETURN expression SEMICOLON
 	  ;
 	  
-expression_statement 	: SEMICOLON			
-			| expression SEMICOLON 
+expression_statement 	: SEMICOLON	{	logFile<<"Line "<<yylineno<<": expression_statement : SEMICOLON"<<endl;	}		
+			| expression SEMICOLON {	logFile<<"Line "<<yylineno<<": expression_statement : expression SEMICOLON"<<endl;	}
 			;
 	  
 variable : ID 
@@ -243,6 +251,7 @@ variable : ID
 				logFile<<"Line "<<yylineno<<": variable : ID"<<endl;
 
 				string varType = $1->getDataType();
+				int n = $1->getArrSize();
 
 				if(varType == "NO_TYPE"){
 					error_count++;
@@ -262,6 +271,7 @@ variable : ID
 			logFile<<"Line "<<yylineno<<": variable : ID LTHIRD expression RTHIRD "<<endl;
 
 			string varType = $1->getDataType();
+			string expType = $3->getDataType();
 			int n = $1->getArrSize();
 
 			if(varType == "NO_TYPE"){
@@ -274,37 +284,160 @@ variable : ID
 
 				errorFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" not an array"<<endl;
 			}
+			else if(expType!="INT"){
+				error_count++;
+
+				errorFile<<"Error at line "<<yylineno<<": Expression inside third brackets not an integer"<<endl;
+			}
 
 			$$ = $1;
 		}
 	 ;
 	 
- expression : logic_expression	
-	   | variable ASSIGNOP logic_expression 	
+expression : logic_expression 
+				{
+					logFile<<"Line "<<yylineno<<": expression : logic_expression "<<endl;
+
+					$$ = new SymbolInfo("expr","NON_TERMINAL");
+					$$->setDataType($1->getDataType());
+
+					delete $1;
+				}
+	   | variable ASSIGNOP logic_expression 
+	   			{
+					logFile<<"Line "<<yylineno<<": expression : variable ASSIGNOP logic_expression "<<endl;
+
+					string varType = $1->getDataType();
+					$$ = new SymbolInfo("expr","NON_TERMINAL");
+					$$->setDataType(varType);
+
+					if(varType!="NO_TYPE"){
+						string expType = $3->getDataType();
+						if(expType=="VOID"){
+							error_count++;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+						}
+						else if(varType!=expType){
+							error_count++;
+							errorFile<<"Error at line "<<yylineno<<": Type mismatch"<<endl;
+						}
+					}
+					else{
+						delete $1;
+					}
+				}	
 	   ;
 			
 logic_expression : rel_expression 	
+					{
+						logFile<<"Line "<<yylineno<<": logic_expression : rel_expression "<<endl;
+
+						$$ = new SymbolInfo("logic_expr","NON_TERMINAL");
+						$$->setDataType($1->getDataType());
+
+						delete $1;
+					}
 		 | rel_expression LOGICOP rel_expression 	
+		 			{
+						logFile<<"Line "<<yylineno<<": logic_expression : rel_expression LOGICOP rel_expression "<<endl;
+
+						string varType1 = $1->getDataType();
+						string varType2 = $3->getDataType();
+						
+						$$ = new SymbolInfo("logic_expr","NON_TERMINAL");
+						if(varType1=="VOID"||varType2=="VOID"){
+							error_count++;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+							$$->setDataType("NO_TYPE");
+						}
+						else $$->setDataType("INT");
+
+						delete $1;
+						delete $2;
+						delete $3;
+					}
 		 ;
 			
 rel_expression	: simple_expression 
+					{
+						logFile<<"Line "<<yylineno<<": rel_expression : simple_expression "<<endl;
+
+						$$ = new SymbolInfo("rel_expr","NON_TERMINAL");
+						$$->setDataType($1->getDataType());
+
+						delete $1;
+					}
 		| simple_expression RELOP simple_expression	
+					{
+						logFile<<"Line "<<yylineno<<": rel_expression : simple_expression RELOP simple_expression"<<endl;
+
+						string varType1 = $1->getDataType();
+						string varType2 = $3->getDataType();
+						
+						$$ = new SymbolInfo("rel_expr","NON_TERMINAL");
+						if(varType1=="VOID"||varType2=="VOID"){
+							error_count++;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+							$$->setDataType("NO_TYPE");
+						}
+						else $$->setDataType("INT");
+
+						delete $1;
+						delete $2;
+						delete $3;
+					}
 		;
 				
 simple_expression : term 
+						{
+							logFile<<"Line "<<yylineno<<": simple_expression : term"<<endl;
+
+							$$ = new SymbolInfo("simple_expr","NON_TERMINAL");
+							$$->setDataType($1->getDataType());
+
+							delete $1;
+						}
 		  | simple_expression ADDOP term 
+		  		{
+					logFile<<"Line "<<yylineno<<": simple_expression : simple_expression ADDOP term"<<endl;
+
+					string varType1 = $1->getDataType();
+					string varType2 = $3->getDataType();
+					
+					$$ = new SymbolInfo("simple_expr","NON_TERMINAL");
+					if(varType1=="VOID"||varType2=="VOID"){
+						error_count++;
+						errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+						$$->setDataType("NO_TYPE");
+					}
+					else{
+						if(varType1=="NO_TYPE"||varType2=="NO_TYPE"){
+							$$->setDataType("NO_TYPE");
+						}
+						else if(varType1=="FLOAT"||varType2=="FLOAT"){
+							$$->setDataType("FLOAT");
+						}
+						else $$->setDataType("INT");
+					}
+
+					delete $1;
+					delete $2;
+					delete $3;
+				}
 		  ;
 					
 term :	unary_expression 
 			{
-				logFile<<"Line no "<<yylineno<<": term : unary_expression "<<endl;
+				logFile<<"Line "<<yylineno<<": term : unary_expression "<<endl;
 
 				$$ = new SymbolInfo("term","NON_TERMINAL");
 				$$->setDataType($1->getDataType());
+
+				delete $1;
 			}
      |  term MULOP unary_expression
 	 		{
-				logFile<<"Line no "<<yylineno<<": term : term MULOP unary_expression "<<endl;
+				logFile<<"Line "<<yylineno<<": term : term MULOP unary_expression "<<endl;
 
 				string varType1 = $1->getDataType();
 				string varType2 = $3->getDataType();
@@ -313,115 +446,174 @@ term :	unary_expression
 				$$ = new SymbolInfo("term","NON_TERMINAL");
 				if(varType1=="VOID"||varType2=="VOID"){
 					error_count++;
-					errorFile<<"Error at line no "<<yylineno<<": Void function used in expression"<<endl;
-					$$->getDataType("NO_TYPE");
+					errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+					$$->setDataType("NO_TYPE");
 				}
 				else if(op=="%"){
 					if(varType1!="INT"||varType2!="INT"){
 						error_count++;
-						errorFile<<"Error at line no "<<yylineno<<": Non-integer operands on modlus operator"<<endl;
-						$$->getDataType("NO_TYPE");
+						errorFile<<"Error at line "<<yylineno<<": Non-integer operands on modlus operator"<<endl;
+						$$->setDataType("NO_TYPE");
 					}
-					else $$->getDataType("INT");
+					else {
+						string objType = $3->getType();
+						if(objType=="CONST_INT"){
+							int objVal = stoi($3->getName());
+							if(objVal==0){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno<<": Modulus by Zero"<<endl;
+								$$->setDataType("NO_TYPE");
+							}
+							else $$->setDataType("INT");
+						}
+						else $$->setDataType("INT");
+					}
 				}
+				else{
+					if(varType1=="NO_TYPE"||varType2=="NO_TYPE"){
+						 $$->setDataType("NO_TYPE");
+					}
+					else if(varType1=="FLOAT"||varType2=="FLOAT"){
+						 $$->setDataType("FLOAT");
+					}
+					else $$->setDataType("INT");
+				}
+
+				delete $1;
+				delete $2;
+				delete $3;
 			}
      ;
 
 unary_expression : ADDOP unary_expression  
 					{	
-						logFile<<"Line no "<<yylineno<<": unary_expression : ADDOP unary_expression"<<endl;
+						logFile<<"Line "<<yylineno<<": unary_expression : ADDOP unary_expression"<<endl;
 
 						$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
 						string varType = $2->getDataType();
 
 						if(varType=="VOID"){
 							error_count++;
-							errorFile<<"Error at line no "<<yylineno<<": Void function used in expression"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
 							$$->setDataType("NO_TYPE");
 						}
 						else $$->setDataType(varType);
+
+						delete $1;
+						delete $2;
 					}
 		 | NOT unary_expression 
 				{	
-					logFile<<"Line no "<<yylineno<<": unary_expression : NOT unary_expression"<<endl;
+					logFile<<"Line "<<yylineno<<": unary_expression : NOT unary_expression"<<endl;
 
 					$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
 					string varType = $2->getDataType();
 
 					if(varType=="VOID"){
 						error_count++;
-						errorFile<<"Error at line no "<<yylineno<<": Void function used in expression"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
 						$$->setDataType("NO_TYPE");
 					}
-					else $$->setDataType(varType);
+					else if(varType=="NO_TYPE"){
+						$$->setDataType("NO_TYPE");
+					}
+					else $$->setDataType("INT");
+
+					delete $2;
 				}
 		 | factor 
 		 		{	
-					logFile<<"Line no "<<yylineno<<": unary_expression : factor"<<endl;
+					logFile<<"Line "<<yylineno<<": unary_expression : factor"<<endl;
 
-					$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
-					$$->setDataType($1->getDataType());
+					string objType = $1->getType();
+					if(objType=="CONST_INT"){
+						$$ = $1;
+					}
+					else{
+						$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
+						$$->setDataType($1->getDataType());
+
+						delete $1;
+					}
 				}
 		 ;
 	
 factor  : variable {	
-						logFile<<"Line no "<<yylineno<<": factor : variable"<<endl;
+						logFile<<"Line "<<yylineno<<": factor : variable"<<endl;
+
+						string varType = $1->getDataType();
 
 						$$ = new SymbolInfo("factor","NON_TERMINAL");
-						$$->setDataType($1->getDataType());
+						$$->setDataType(varType);
+
+						if(varType=="NO_TYPE")
+							delete $1;
 				}
 	| ID LPAREN argument_list RPAREN 
 				{	
-					logFile<<"Line no "<<yylineno<<": factor : ID LPAREN argument_list RPAREN"<<endl;
+					logFile<<"Line "<<yylineno<<": factor : ID LPAREN argument_list RPAREN"<<endl;
 
 					string varType = $1->getDataType();
 					$$ = new SymbolInfo("factor","NON_TERMINAL");
 
 					if(varType=="NO_TYPE"){
 						error_count++;
-						errorFile<<"Error at line no "<<yylineno<<": Undeclared function "<<$1->getName()<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Undeclared function "<<$1->getName()<<endl;
+						delete $1;
 					}
 					else if(!$1->isFunc){
 						error_count++;
-						errorFile<<"Error at line no "<<yylineno<<": "<<$1->getName()<<" is not a function"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" is not a function"<<endl;
 					}
 
 					$$->setDataType(varType);
 				}
 	| LPAREN expression RPAREN
 				{	
-					logFile<<"Line no "<<yylineno<<": factor : LPAREN expression RPAREN"<<endl;
+					logFile<<"Line "<<yylineno<<": factor : LPAREN expression RPAREN"<<endl;
 
 					$$ = new SymbolInfo("factor","NON_TERMINAL");
 					$$->setDataType($2->getDataType());
 				}
 	| CONST_INT 
 			{	
-				logFile<<"Line no "<<yylineno<<": factor : CONST_INT"<<endl;
+				logFile<<"Line "<<yylineno<<": factor : CONST_INT"<<endl;
 
-				$$ = new SymbolInfo("factor","NON_TERMINAL");
+				$$ = $1;
 				$$->setDataType("INT");
 			}
 	| CONST_FLOAT
 			{	
-				logFile<<"Line no "<<yylineno<<": factor : CONST_FLOAT"<<endl;
+				logFile<<"Line "<<yylineno<<": factor : CONST_FLOAT"<<endl;
 
 				$$ = new SymbolInfo("factor","NON_TERMINAL");
 				$$->setDataType("FLOAT");
+
+				delete $1;
 			}
 	| variable INCOP 
 			{	
-				logFile<<"Line no "<<yylineno<<": factor : variable INCOP"<<endl;
+				logFile<<"Line "<<yylineno<<": factor : variable INCOP"<<endl;
+
+				string varType = $1->getDataType();
 
 				$$ = new SymbolInfo("factor","NON_TERMINAL");
-				$$->setDataType($1->getDataType());
+				$$->setDataType(varType);
+
+				if(varType=="NO_TYPE")
+						delete $1;
 			}
 	| variable DECOP
 			{	
-				logFile<<"Line no "<<yylineno<<": factor : variable DECOP"<<endl;
+				logFile<<"Line "<<yylineno<<": factor : variable DECOP"<<endl;
+
+				string varType = $1->getDataType();
 
 				$$ = new SymbolInfo("factor","NON_TERMINAL");
-				$$->setDataType($1->getDataType());
+				$$->setDataType(varType);
+
+				if(varType=="NO_TYPE")
+						delete $1;
 			}
 	;
 	

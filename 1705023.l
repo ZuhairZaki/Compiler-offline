@@ -23,6 +23,7 @@ string token_name;
 string hold_lexeme;
 
 extern ofstream errorFile;
+extern ofstream logFile;
 
 void save_lexeme(){
 	string s(yytext);
@@ -257,7 +258,8 @@ println {
 		return RPAREN;
    }
    
-\{  {
+\{  {	
+		symTab->enterScope();
 		return LCURL;
    }
    
