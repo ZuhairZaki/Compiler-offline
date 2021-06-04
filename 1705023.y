@@ -295,8 +295,36 @@ simple_expression : term
 		  | simple_expression ADDOP term 
 		  ;
 					
-term :	unary_expression
+term :	unary_expression 
+			{
+				logFile<<"Line no "<<yylineno<<": term : unary_expression "<<endl;
+
+				$$ = new SymbolInfo("term","NON_TERMINAL");
+				$$->setDataType($1->getDataType());
+			}
      |  term MULOP unary_expression
+	 		{
+				logFile<<"Line no "<<yylineno<<": term : term MULOP unary_expression "<<endl;
+
+				string varType1 = $1->getDataType();
+				string varType2 = $3->getDataType();
+				string op = $2->getName();
+
+				$$ = new SymbolInfo("term","NON_TERMINAL");
+				if(varType1=="VOID"||varType2=="VOID"){
+					error_count++;
+					errorFile<<"Error at line no "<<yylineno<<": Void function used in expression"<<endl;
+					$$->getDataType("NO_TYPE");
+				}
+				else if(op=="%"){
+					if(varType1!="INT"||varType2!="INT"){
+						error_count++;
+						errorFile<<"Error at line no "<<yylineno<<": Non-integer operands on modlus operator"<<endl;
+						$$->getDataType("NO_TYPE");
+					}
+					else $$->getDataType("INT");
+				}
+			}
      ;
 
 unary_expression : ADDOP unary_expression  
@@ -304,14 +332,28 @@ unary_expression : ADDOP unary_expression
 						logFile<<"Line no "<<yylineno<<": unary_expression : ADDOP unary_expression"<<endl;
 
 						$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
-						$$->setDataType($2->getDataType());
+						string varType = $2->getDataType();
+
+						if(varType=="VOID"){
+							error_count++;
+							errorFile<<"Error at line no "<<yylineno<<": Void function used in expression"<<endl;
+							$$->setDataType("NO_TYPE");
+						}
+						else $$->setDataType(varType);
 					}
 		 | NOT unary_expression 
 				{	
 					logFile<<"Line no "<<yylineno<<": unary_expression : NOT unary_expression"<<endl;
 
 					$$ = new SymbolInfo("unary_exp","NON_TERMINAL");
-					$$->setDataType($2->getDataType());
+					string varType = $2->getDataType();
+
+					if(varType=="VOID"){
+						error_count++;
+						errorFile<<"Error at line no "<<yylineno<<": Void function used in expression"<<endl;
+						$$->setDataType("NO_TYPE");
+					}
+					else $$->setDataType(varType);
 				}
 		 | factor 
 		 		{	
