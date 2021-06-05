@@ -1,39 +1,36 @@
-Line 2: type_specifier : INT
+Line 1: type_specifier : INT
+Line 1: declaration_list : ID 
+Line 1: declaration_list : declaration_list COMMA ID 
+Line 1: declaration_list : declaration_list COMMA ID 
+Line 1: var_declaration : type_specifier declaration_list SEMICOLON
+Line 1: unit : var_declaration
+Line 1: program : unit
+Line 1: type_specifier : FLOAT
+Line 1: declaration_list : ID 
+Line 1: var_declaration : type_specifier declaration_list SEMICOLON
+Line 1: unit : var_declaration
+Line 1: program : program unit
 Line 3: type_specifier : INT
-Line 3: declaration_list : ID 
-Line 3: declaration_list : declaration_list COMMA ID 
-Line 3: declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD 
-Line 3: declaration_list : declaration_list COMMA ID 
-Line 3: declaration_list : declaration_list COMMA ID 
-Line 3: var_declaration : type_specifier declaration_list SEMICOLON
-Line 3: statement : var_declaration
-Line 3: statements : statement
-Line 4: type_specifier : VOID
-Line 4: declaration_list : ID 
-Line 4: var_declaration : type_specifier declaration_list SEMICOLON
-Line 4: statement : var_declaration
-Line 4: statements : statements statement
-Line 5: type_specifier : FLOAT
-Line 5: declaration_list : ID 
-Line 5: declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD 
-Line 5: var_declaration : type_specifier declaration_list SEMICOLON
-Line 5: statement : var_declaration
-Line 5: statements : statements statement
-Line 7: variable : ID
-Line 7: factor : CONST_INT
-Line 7: unary_expression : factor
-Line 7: term : unary_expression 
-Line 7: simple_expression : term
-Line 7: factor : CONST_INT
-Line 7: unary_expression : factor
-Line 7: term : unary_expression 
-Line 7: simple_expression : simple_expression ADDOP term
-Line 7: rel_expression : simple_expression 
-Line 7: logic_expression : rel_expression 
-Line 7: expression : variable ASSIGNOP logic_expression 
-Line 7: expression_statement : expression SEMICOLON
-Line 7: statement : expression_statement
-Line 7: statements : statements statement
+Line 3: type_specifier : INT
+Line 3: parameter_list  : type_specifier ID
+Line 3: type_specifier : INT
+Line 3: parameter_list  : parameter_list COMMA type_specifier ID
+Line 3: func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
+Line 3: unit : func_declaration
+Line 3: program : program unit
+Line 5: type_specifier : INT
+Line 5: type_specifier : INT
+Line 5: parameter_list  : type_specifier ID
+Line 5: type_specifier : INT
+Line 5: parameter_list  : parameter_list COMMA type_specifier ID
+Line 5: func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
+Line 5: unit : func_declaration
+Line 5: program : program unit
+Line 7: type_specifier : INT
+Line 7: type_specifier : INT
+Line 7: parameter_list  : type_specifier ID
+Line 7: type_specifier : INT
+Line 7: parameter_list  : parameter_list COMMA type_specifier ID
 Line 8: factor : CONST_INT
 Line 8: unary_expression : factor
 Line 8: term : unary_expression 
@@ -41,38 +38,164 @@ Line 8: simple_expression : term
 Line 8: rel_expression : simple_expression 
 Line 8: logic_expression : rel_expression 
 Line 8: expression : logic_expression 
-Line 8: variable : ID LTHIRD expression RTHIRD 
-Line 8: factor : CONST_INT
-Line 8: unary_expression : factor
-Line 8: term : unary_expression 
-Line 8: simple_expression : term
-Line 8: rel_expression : simple_expression 
-Line 8: logic_expression : rel_expression 
-Line 8: expression : variable ASSIGNOP logic_expression 
-Line 8: expression_statement : expression SEMICOLON
-Line 8: statement : expression_statement
-Line 8: statements : statements statement
-Line 9: factor : CONST_FLOAT
-Line 9: unary_expression : factor
-Line 9: term : unary_expression 
-Line 9: simple_expression : term
-Line 9: rel_expression : simple_expression 
-Line 9: logic_expression : rel_expression 
-Line 9: expression : logic_expression 
-Line 9: variable : ID LTHIRD expression RTHIRD 
-Line 9: factor : CONST_INT
-Line 9: unary_expression : factor
-Line 9: term : unary_expression 
-Line 9: simple_expression : term
-Line 9: rel_expression : simple_expression 
-Line 9: logic_expression : rel_expression 
-Line 9: expression : variable ASSIGNOP logic_expression 
-Line 9: expression_statement : expression SEMICOLON
-Line 9: statement : expression_statement
-Line 9: statements : statements statement
-Line 10: compound_statement : LCURL statements RCURL
-Line 10: type_specifier ID LPAREN RPAREN compound_statement
+Line 8: statement : RETURN expression SEMICOLON
+Line 8: statements : statement
+Line 9: compound_statement : LCURL statements RCURL
+Line 9: type_specifier ID LPAREN parameter_list RPAREN compound_statement
 ScopeTable # 1.1
+ 9 --> < c : ID> 
+ 10 --> < d : ID> 
+
+ScopeTable # 1
+ 0 --> < x : ID> 
+ 1 --> < y : ID> 
+ 2 --> < z : ID> 
+ 7 --> < a : ID> 
+ 8 --> < func : ID> 
+ 15 --> < foo3 : ID> 
+ 29 --> < var : ID> 
+
+Line 9: unit : func_definition
+Line 9: program : program unit
+Line 11: type_specifier : VOID
+Line 11: type_specifier : INT
+Line 11: parameter_list  : type_specifier ID
+Line 11: type_specifier : INT
+Line 11: parameter_list  : parameter_list COMMA type_specifier ID
+Line 12: variable : ID
+Line 12: factor : CONST_INT
+Line 12: unary_expression : factor
+Line 12: term : unary_expression 
+Line 12: simple_expression : term
+Line 12: rel_expression : simple_expression 
+Line 12: logic_expression : rel_expression 
+Line 12: expression : variable ASSIGNOP logic_expression 
+Line 12: expression_statement : expression SEMICOLON
+Line 12: statement : expression_statement
+Line 12: statements : statement
+Line 13: compound_statement : LCURL statements RCURL
+Line 13: type_specifier ID LPAREN parameter_list RPAREN compound_statement
+ScopeTable # 1.2
+ 7 --> < a : ID> 
+ 8 --> < b : ID> 
+
+ScopeTable # 1
+ 0 --> < x : ID> 
+ 1 --> < y : ID> 
+ 2 --> < z : ID> 
+ 7 --> < a : ID> 
+ 8 --> < func : ID> 
+ 15 --> < foo3 : ID> 
+ 29 --> < var : ID> 
+
+Line 13: unit : func_definition
+Line 13: program : program unit
+Line 15: type_specifier : INT
+Line 15: type_specifier : INT
+Line 15: parameter_list  : type_specifier ID
+Line 16: variable : ID
+Line 16: factor : variable
+Line 16: unary_expression : factor
+Line 16: term : unary_expression 
+Line 16: simple_expression : term
+Line 16: rel_expression : simple_expression 
+Line 16: logic_expression : rel_expression 
+Line 16: expression : logic_expression 
+Line 16: statement : RETURN expression SEMICOLON
+Line 16: statements : statement
+Line 17: compound_statement : LCURL statements RCURL
+Line 17: type_specifier ID LPAREN parameter_list RPAREN compound_statement
+ScopeTable # 1.3
+ 7 --> < a : ID> 
+
+ScopeTable # 1
+ 0 --> < x : ID> 
+ 1 --> < y : ID> 
+ 2 --> < z : ID> 
+ 7 --> < a : ID> 
+ 8 --> < func : ID> 
+ 15 --> < foo3 : ID> 
+ 29 --> < var : ID> 
+
+Line 17: unit : func_definition
+Line 17: program : program unit
+Line 19: type_specifier : FLOAT
+Line 20: statement : PRINTLN LPAREN ID RPAREN SEMICOLON
+Line 20: statements : statement
+Line 21: compound_statement : LCURL statements RCURL
+Line 21: type_specifier ID LPAREN RPAREN compound_statement
+ScopeTable # 1.4
+
+ScopeTable # 1
+ 0 --> < x : ID> 
+ 1 --> < y : ID> 
+ 2 --> < z : ID> 
+ 7 --> < a : ID> 
+ 8 --> < func : ID> 
+ 15 --> < foo3 : ID> 
+ 28 --> < test : ID> 
+ 29 --> < var : ID> 
+
+Line 21: unit : func_definition
+Line 21: program : program unit
+Line 23: type_specifier : INT
+Line 24: type_specifier : INT
+Line 24: declaration_list : ID 
+Line 24: declaration_list : declaration_list COMMA ID 
+Line 24: declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD 
+Line 24: declaration_list : declaration_list COMMA ID 
+Line 24: declaration_list : declaration_list COMMA ID 
+Line 24: var_declaration : type_specifier declaration_list SEMICOLON
+Line 24: statement : var_declaration
+Line 24: statements : statement
+Line 25: type_specifier : VOID
+Line 25: declaration_list : ID 
+Line 25: var_declaration : type_specifier declaration_list SEMICOLON
+Line 25: statement : var_declaration
+Line 25: statements : statements statement
+Line 26: type_specifier : FLOAT
+Line 26: declaration_list : ID 
+Line 26: declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD 
+Line 26: var_declaration : type_specifier declaration_list SEMICOLON
+Line 26: statement : var_declaration
+Line 26: statements : statements statement
+Line 28: factor : CONST_FLOAT
+Line 28: unary_expression : factor
+Line 28: term : unary_expression 
+Line 28: simple_expression : term
+Line 28: rel_expression : simple_expression 
+Line 28: logic_expression : rel_expression 
+Line 28: arguments : logic_expression
+Line 28: factor : CONST_FLOAT
+Line 28: unary_expression : factor
+Line 28: term : unary_expression 
+Line 28: simple_expression : term
+Line 28: rel_expression : simple_expression 
+Line 28: logic_expression : rel_expression 
+Line 28: arguments : arguments COMMA logic_expression
+Line 28: factor : ID LPAREN argument_list RPAREN
+Line 28: unary_expression : factor
+Line 28: term : unary_expression 
+Line 28: simple_expression : term
+Line 28: rel_expression : simple_expression 
+Line 28: logic_expression : rel_expression 
+Line 28: expression : logic_expression 
+Line 28: expression_statement : expression SEMICOLON
+Line 28: statement : expression_statement
+Line 28: statements : statements statement
+Line 30: factor : ID LPAREN argument_list RPAREN
+Line 30: unary_expression : factor
+Line 30: term : unary_expression 
+Line 30: simple_expression : term
+Line 30: rel_expression : simple_expression 
+Line 30: logic_expression : rel_expression 
+Line 30: expression : logic_expression 
+Line 30: expression_statement : expression SEMICOLON
+Line 30: statement : expression_statement
+Line 30: statements : statements statement
+Line 31: compound_statement : LCURL statements RCURL
+Line 31: type_specifier ID LPAREN RPAREN compound_statement
+ScopeTable # 1.5
  7 --> < a : ID> 
  8 --> < b : ID> 
  9 --> < c : ID> 
@@ -80,13 +203,27 @@ ScopeTable # 1.1
  22 --> < ee : ID> 
 
 ScopeTable # 1
- 1 --> < main : ID> 
+ 0 --> < x : ID> 
+ 1 --> < y : ID> < main : ID> 
+ 2 --> < z : ID> 
+ 7 --> < a : ID> 
+ 8 --> < func : ID> 
+ 15 --> < foo3 : ID> 
+ 28 --> < test : ID> 
+ 29 --> < var : ID> 
 
-Line 10: unit : func_definition
-Line 10: program : unit
-Line 11: start : program
+Line 31: unit : func_definition
+Line 31: program : program unit
+Line 32: start : program
 ScopeTable # 1
- 1 --> < main : ID> 
+ 0 --> < x : ID> 
+ 1 --> < y : ID> < main : ID> 
+ 2 --> < z : ID> 
+ 7 --> < a : ID> 
+ 8 --> < func : ID> 
+ 15 --> < foo3 : ID> 
+ 28 --> < test : ID> 
+ 29 --> < var : ID> 
 
-Total lines : 11
+Total lines : 32
 Total error : 6

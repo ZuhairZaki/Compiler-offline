@@ -10,12 +10,16 @@ class SymbolInfo
 
 public:
     bool isFunc;
+    bool isDefined;
     SymbolInfo* nextInfoObj;
+    SymbolInfo* paramlist;
 
     SymbolInfo() {  
         nextInfoObj = NULL; dataType="NO_TYPE"; 
         arrSize = -1;
         isFunc = false;
+        isDefined = false;
+        paramlist = NULL;
     }
 
     SymbolInfo(string name,string type){
@@ -25,6 +29,8 @@ public:
         dataType = "NO_TYPE";
         arrSize = -1;
         isFunc = false;
+        isDefined = false;
+        paramlist = NULL;
     }
 
     void setName(string new_name){
@@ -61,7 +67,11 @@ public:
     }
 
     ~SymbolInfo(){
-        //cout<<"Object freed"<<endl;
+        while(paramlist!=NULL){
+            SymbolInfo* x = paramlist;
+            paramlist = paramlist->nextInfoObj;
+            delete x;
+        }
     }
 };
 

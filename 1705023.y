@@ -59,7 +59,7 @@ SymbolInfo* insertItem(SymbolInfo* head,SymbolInfo* s)
 start : program 
 			{	
 				logFile<<"Line "<<yylineno<<": start : program"<<endl;
-
+				
 				symTab->printAllScope(logFile);
 
 				logFile<<"Total lines : "<<yylineno<<endl;
@@ -77,54 +77,265 @@ unit : var_declaration { logFile<<"Line "<<yylineno<<": unit : var_declaration"<
      ;
      
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
+					{
+						logFile<<"Line "<<yylineno<<": func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON"<<endl;
+
+						if($2->isFunc){
+							error_count++;
+							errorFile<<"Error at line "<<yylineno<<": Function "<<$2->getName()<<" is already declared"<<endl;
+						}
+						else{
+							string varType = $2->getDataType();
+
+							if(varType!="NO_TYPE"){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
+							}
+							else{
+								$2->isFunc = true;
+								$2->setDataType($1->getName());
+								$2->paramlist = $4;
+								symTab->Insert($2);
+							}
+						}
+
+						delete $1;
+					}
 		| type_specifier ID LPAREN RPAREN SEMICOLON
-		;
-		 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement
-		| type_specifier ID LPAREN RPAREN compound_statement 
-			{
-				logFile<<"Line "<<yylineno<<": type_specifier ID LPAREN RPAREN compound_statement"<<endl;
+				{
+					logFile<<"Line "<<yylineno<<": func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON"<<endl;
 
-				string varType = $2->getDataType();
-
-				if(varType=="NO_TYPE"){
-					$2->isFunc = true;
-					$2->setDataType($1->getName());
-					symTab->InsertIntoParent($2);
-				}
-				else{
-					error_count++;
 					if($2->isFunc){
-						errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a function"<<endl;
+						error_count++;
+						errorFile<<"Error at line "<<yylineno<<": Function "<<$2->getName()<<" is already declared"<<endl;
 					}
 					else{
-						errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
-					}
-				}
+						string varType = $2->getDataType();
 
-				symTab->printAllScope(logFile);
-				symTab->exitScope();
-				delete $1;
-			}
- 		;				
+						if(varType!="NO_TYPE"){
+							error_count++;
+							errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
+						}
+						else{
+							$2->isFunc = true;
+							$2->setDataType($1->getName());
+							symTab->Insert($2);
+						}
+					}
+
+					delete $1;
+				}
+		;
+
+func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
+					{
+						if($2->isFunc){
+							if($2->isDefined){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno<<": Function "<<$2->getName()<<" is already defined"<<endl;
+							}
+							else{
+								if($2->getDataType()!=$1->getName()){
+									error_count++;
+									errorFile<<"Error at line "<<yylineno;
+									errorFile<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl;
+								}
+
+								SymbolInfo* funcParam = $2->paramlist;
+								SymbolInfo* defParam = $4;
+								while(funcParam!=NULL && defParam!=NULL){
+									if(funcParam->getDataType()!=defParam->getDataType()){
+										error_count++;
+										errorFile<<"Error at line "<<yylineno<<": Parameter type mismatch with declaration in function"<<$2->getName()<<endl;
+										break;
+									}
+									funcParam = funcParam->nextInfoObj;
+									defParam = defParam->nextInfoObj;
+
+									if((funcParam==NULL&&defParam!=NULL)||(funcParam!=NULL&&defParam==NULL)){
+										error_count++;
+										errorFile<<"Error at line "<<yylineno;
+										errorFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl;
+										break;
+									}
+								}
+
+								$2->isDefined = true;
+							}
+
+							while($2->paramlist!=NULL){
+								SymbolInfo* funcParam = $2->paramlist;
+								$2->paramlist = funcParam->nextInfoObj;
+								delete funcParam;
+							}
+
+							$2->paramlist = $4;
+						}
+						else{
+							string varType = $2->getDataType();
+
+							if(varType!="NO_TYPE"){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
+							}
+							else{
+								$2->isFunc = true;
+								$2->setDataType($1->getName());
+								$2->isDefined = true;
+								$2->paramlist = $4;
+								symTab->Insert($2);
+							}
+						}
+
+						symTab->enterScope();
+
+						SymbolInfo* funcParam = $2->paramlist;
+						while(funcParam!=NULL){
+							if(funcParam->getName()!="NO_NAME"){
+								SymbolInfo* paramObj = new SymbolInfo(funcParam->getName(),funcParam->getType());
+								paramObj->setDataType(funcParam->getDataType());
+								symTab->Insert(paramObj);
+							}
+							funcParam = funcParam->nextInfoObj;
+						}
+
+						$$ = $2;
+
+						delete $1;
+					}
+				| type_specifier ID LPAREN RPAREN LCURL
+					{
+						if($2->isFunc){
+							if($2->isDefined){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno<<": Function "<<$2->getName()<<" is already defined"<<endl;
+							}
+							else{
+								if($2->getDataType()!=$1->getName()){
+									error_count++;
+									errorFile<<"Error at line "<<yylineno<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl;
+								}
+
+								SymbolInfo* funcParam = $2->paramlist;
+								if(funcParam!=NULL){
+									error_count++;
+									errorFile<<"Error at line "<<yylineno;
+									errorFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl;
+								}
+								$2->isDefined = true;
+							}
+
+							while($2->paramlist!=NULL){
+								SymbolInfo* funcParam = $2->paramlist;
+								$2->paramlist = funcParam->nextInfoObj;
+								delete funcParam;
+							}
+						}
+						else{
+							string varType = $2->getDataType();
+
+							if(varType!="NO_TYPE"){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
+							}
+							else{
+								$2->isFunc = true;
+								$2->setDataType($1->getName());
+								$2->isDefined = true;
+								symTab->Insert($2);
+							}
+						}
+
+						symTab->enterScope();
+
+						$$ = $2;
+
+						delete $1;
+					}
+		 
+func_definition : func_def_start compound_end
+					{	
+						SymbolInfo* funcParam = $1->paramlist;
+
+						if(funcParam!=NULL){
+							logFile<<"Line "<<yylineno<<": type_specifier ID LPAREN parameter_list RPAREN compound_statement"<<endl;
+						}
+						else{
+							logFile<<"Line "<<yylineno<<": type_specifier ID LPAREN RPAREN compound_statement"<<endl;
+						}
+
+						symTab->printAllScope(logFile);
+						symTab->exitScope();
+					}
+ 			;				
 
 
 parameter_list  : parameter_list COMMA type_specifier ID
+					{
+						logFile<<"Line "<<yylineno<<": parameter_list  : parameter_list COMMA type_specifier ID"<<endl;
+
+						SymbolInfo* paramObj = new SymbolInfo($4->getName(),"ID");
+						paramObj->setDataType($3->getName());
+
+						$$ = insertItem($1,paramObj);
+
+						delete $3;
+
+						if($4->getDataType()=="NO_TYPE")
+							delete $4;
+					}
 		| parameter_list COMMA type_specifier
+			{
+				logFile<<"Line "<<yylineno<<": parameter_list  : parameter_list COMMA type_specifier"<<endl;
+
+				SymbolInfo* paramObj = new SymbolInfo("NO_NAME","ID");
+				paramObj->setDataType($3->getName());
+
+				$$ = insertItem($1,paramObj);
+
+				delete $3;
+			}
  		| type_specifier ID
+		 	{
+				logFile<<"Line "<<yylineno<<": parameter_list  : type_specifier ID"<<endl;
+
+				$$ = new SymbolInfo($2->getName(),"ID");
+				$$->setDataType($1->getName());
+
+				delete $1;
+
+				if($2->getDataType()=="NO_TYPE")
+						delete $2;
+			}
 		| type_specifier
+			{
+				logFile<<"Line "<<yylineno<<": parameter_list  : type_specifier"<<endl;
+
+				$$ = new SymbolInfo("NO_NAME","ID");
+				$$->setDataType($1->getName());
+
+				delete $1;
+			}
+
  		;
 
- 		
-compound_statement : LCURL statements RCURL 
+compound_start : LCURL {
+							symTab->enterScope();
+					   }
+			;
+
+compound_end : statements RCURL 
 						{
 							logFile<<"Line "<<yylineno<<": compound_statement : LCURL statements RCURL"<<endl;
 						}
- 		    | LCURL RCURL
-			 {
-				 logFile<<"Line "<<yylineno<<": compound_statement : LCURL RCURL"<<endl;
-			 }
+ 		    | RCURL
+				{
+					logFile<<"Line "<<yylineno<<": compound_statement : LCURL RCURL"<<endl;
+				}
  		    ;
+
+compound_statement : compound_start compound_end
+				;
  		    
 var_declaration : type_specifier declaration_list SEMICOLON 
 					{	
@@ -137,7 +348,7 @@ var_declaration : type_specifier declaration_list SEMICOLON
 						if(varType=="VOID"){
 							error_count++;
 
-							errorFile<<"Error at line "<<yylineno<<": Variable type cannot be VOID"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl;
 
 							while($2!=NULL){
 								$2 = $2->nextInfoObj;
@@ -231,15 +442,58 @@ statements : statement {	logFile<<"Line "<<yylineno<<": statements : statement"<
 	   | statements statement {	  logFile<<"Line "<<yylineno<<": statements : statements statement"<<endl;	}
 	   ;
 	   
-statement : var_declaration { logFile<<"Line "<<yylineno<<": statement : var_declaration"<<endl; }
-	  | expression_statement {	logFile<<"Line "<<yylineno<<": statement : expression_statement"<<endl; }
+statement : var_declaration 
+		{ 
+			logFile<<"Line "<<yylineno<<": statement : var_declaration"<<endl; 
+		}
+	  | expression_statement 
+	  	{	
+			logFile<<"Line "<<yylineno<<": statement : expression_statement"<<endl; 
+		}
 	  | compound_statement
+	  	{
+			logFile<<"Line "<<yylineno<<": statement : compound_statement"<<endl; 
+
+			symTab->exitScope();
+		}
 	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement
+	  	{
+			logFile<<"Line "<<yylineno;
+			logFile<<": statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement"<<endl;  
+		}
 	  | IF LPAREN expression RPAREN statement %prec THEN
+	  		{
+				logFile<<"Line "<<yylineno<<": statement : IF LPAREN expression RPAREN statement"<<endl;
+			}
 	  | IF LPAREN expression RPAREN statement ELSE statement
+	  		{
+				logFile<<"Line "<<yylineno<<": statement : IF LPAREN expression RPAREN statement ELSE statement"<<endl;
+			}
 	  | WHILE LPAREN expression RPAREN statement
+	  		{
+				logFile<<"Line "<<yylineno<<": statement : WHILE LPAREN expression RPAREN statement"<<endl;
+			}
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
+	  		{
+				logFile<<"Line "<<yylineno<<": statement : PRINTLN LPAREN ID RPAREN SEMICOLON"<<endl;
+
+				string varType = $3->getDataType();
+				int n = $3->getArrSize();
+				if(varType=="NO_TYPE"){
+					error_count++;
+					errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$3->getName()<<endl;
+
+					delete $3;
+				}
+				else if(n>=0){
+					error_count++;
+					errorFile<<"Error at line "<<yylineno<<": Array "<<$3->getName()<<" used without an index"<<endl;
+				}
+			}
 	  | RETURN expression SEMICOLON
+	  		{
+				logFile<<"Line "<<yylineno<<": statement : RETURN expression SEMICOLON"<<endl;
+			}
 	  ;
 	  
 expression_statement 	: SEMICOLON	{	logFile<<"Line "<<yylineno<<": expression_statement : SEMICOLON"<<endl;	}		
@@ -565,6 +819,28 @@ factor  : variable {
 						error_count++;
 						errorFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" is not a function"<<endl;
 					}
+					else{
+						int pos = 1;
+						SymbolInfo* funcParam = $1->paramlist;
+						SymbolInfo* argslist = $3;
+						while(funcParam!=NULL && argslist!=NULL){
+							if(funcParam->getDataType()!=argslist->getDataType()){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno<<": "<<pos<<"th argument mismatch in function "<<$1->getName()<<endl;
+								break;
+							}
+							funcParam = funcParam->nextInfoObj;
+							argslist = argslist->nextInfoObj;
+							pos++;
+
+							if((funcParam==NULL&&argslist!=NULL)||(funcParam!=NULL&&argslist==NULL)){
+								error_count++;
+								errorFile<<"Error at line "<<yylineno;
+								errorFile<<": Total number of arguments mismatch in function "<<$1->getName()<<endl;
+								break;
+							}
+						}
+					}
 
 					$$->setDataType(varType);
 				}
@@ -617,12 +893,20 @@ factor  : variable {
 			}
 	;
 	
-argument_list : arguments
-			  |
+argument_list : arguments {	$$=$1; }
+			  | 
 			  ;
 	
 arguments : arguments COMMA logic_expression
+				{
+					logFile<<"Line "<<yylineno<<": arguments : arguments COMMA logic_expression"<<endl;
+					$$ = insertItem($1,$3);	
+				}
 	      | logic_expression
+		  	{
+				logFile<<"Line "<<yylineno<<": arguments : logic_expression"<<endl;
+				$$ = $1;				
+			}
 	      ;
  
 

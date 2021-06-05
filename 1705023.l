@@ -209,7 +209,7 @@ continue {
 			//return CONTINUE;
          }
 
-println {	
+printf {	
 
 			return PRINTLN;
 		}
@@ -259,7 +259,6 @@ println {
    }
    
 \{  {	
-		symTab->enterScope();
 		return LCURL;
    }
    

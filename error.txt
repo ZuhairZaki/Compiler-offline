@@ -1,6 +1,6 @@
-Error at line 4: Variable type cannot be VOID
-Error at line 5: Multiple declaration of a
-Error at line 5: Multiple declaration of c
-Error at line 7: Undeclared variable k
-Error at line 8: b not an array
-Error at line 9: Expression inside third brackets not an integer
+Error at line 11: Return type mismatch with function declaration in function foo3
+Error at line 15: Total number of arguments mismatch with declaration in function var
+Error at line 25: Variable type cannot be Void
+Error at line 26: Multiple declaration of a
+Error at line 26: Multiple declaration of c
+Error at line 28: 1th argument mismatch in function func
