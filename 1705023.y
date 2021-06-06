@@ -210,7 +210,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 
 							if(varType!="NO_TYPE"){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
 							}
 							else{
 								$2->isFunc = true;
@@ -260,7 +260,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 
 						if(varType!="NO_TYPE"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": "<<$2->getName()<<" is already declared as a variable"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
 						}
 						else{
 							$2->isFunc = true;
@@ -407,6 +407,9 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 		 
 func_definition : func_def_start compound_end
 					{	
+						string comp_str = "{\n"+$2->getName();
+						logFile<<"\n"<<comp_str<<"\n\n";
+
 						SymbolInfo* funcParam = $1->paramlist;
 
 						string s="";
@@ -448,7 +451,7 @@ func_definition : func_def_start compound_end
 						}
 						s += ")";
 
-						string func_str = s + "{\n" + $2->getName();
+						string func_str = s + comp_str;
 						$$ = new SymbolInfo(func_str,"func_def");
 						logFile<<"\n"<<func_str<<"\n\n";
 
@@ -767,18 +770,53 @@ statement : var_declaration
 	  	{
 			logFile<<"Line "<<yylineno;
 			logFile<<": statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement"<<endl;  
+
+			string s = "for( "+$3->getName()+" "+$4->getName()+" "+$5->getName()+" )\n"+$7->getName();
+			$$ = new SymbolInfo(s,"stmt");
+
+			logFile<<"\n"<<s<<"\n\n";
+
+			delete $3;
+			delete $4;
+			delete $5;
+			delete $7;
 		}
 	  | IF LPAREN expression RPAREN statement %prec THEN
 	  		{
 				logFile<<"Line "<<yylineno<<": statement : IF LPAREN expression RPAREN statement"<<endl;
+
+				string s = "if( "+$3->getName()+" )\n"+$5->getName();
+				$$ = new SymbolInfo(s,"stmt");
+
+				logFile<<"\n"<<s<<"\n\n";
+
+				delete $3;
+				delete $5;
 			}
 	  | IF LPAREN expression RPAREN statement ELSE statement
 	  		{
 				logFile<<"Line "<<yylineno<<": statement : IF LPAREN expression RPAREN statement ELSE statement"<<endl;
+
+				string s = "if( "+$3->getName()+" )\n"+$5->getName()+"\nelse "+$7->getName();
+				$$ = new SymbolInfo(s,"stmt");
+
+				logFile<<"\n"<<s<<"\n\n";
+
+				delete $3;
+				delete $5;
+				delete $7;
 			}
 	  | WHILE LPAREN expression RPAREN statement
 	  		{
 				logFile<<"Line "<<yylineno<<": statement : WHILE LPAREN expression RPAREN statement"<<endl;
+
+				string s = "while( "+$3->getName()+" )\n"+$5->getName();
+				$$ = new SymbolInfo(s,"stmt");
+
+				logFile<<"\n"<<s<<"\n\n";
+
+				delete $3;
+				delete $5;
 			}
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
 	  		{
