@@ -310,19 +310,6 @@ public:
         return currScope->Insert(new_entry);
     }
 
-    bool InsertIntoParent(SymbolInfo* new_entry)
-    {
-        if(currScope == NULL)
-            return false;
-
-        ScopeTable* parScope = currScope->parentScope;
-
-        if(parScope == NULL)
-            return false;
-
-        return parScope->Insert(new_entry);
-    }
-
     bool Remove(string symbol)
     {
         if(currScope == NULL)
