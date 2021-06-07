@@ -309,6 +309,9 @@ printf {
 	
 	errorFile<<"Error at line no "<<yylineno<<": ";
 	errorFile<<"Unterminated character "<<yytext<<endl<<endl;
+
+	logFile<<"Error at line no "<<yylineno<<": ";
+	logFile<<"Unterminated character "<<yytext<<endl<<endl;
   }  
 
     
@@ -317,6 +320,9 @@ printf {
 	
 	errorFile<<"Error at line no "<<yylineno<<": ";
 	errorFile<<"Empty character constant error "<<yytext<<endl<<endl;
+
+	logFile<<"Error at line no "<<yylineno<<": ";
+	logFile<<"Empty character constant error "<<yytext<<endl<<endl;
    } 
    
 '[^\t\n\v\\']' {	
@@ -342,6 +348,9 @@ printf {
 			
 			errorFile<<"Error at line no "<<yylineno<<": ";
 			errorFile<<"Unterminated character "<<yytext<<endl<<endl;
+
+			logFile<<"Error at line no "<<yylineno<<": ";
+			logFile<<"Unterminated character "<<yytext<<endl<<endl;
 	         }
 	   
 '[^\n\v']+' {	
@@ -349,6 +358,9 @@ printf {
 		
 		errorFile<<"Error at line no "<<yylineno<<": ";
 		errorFile<<"Multi character constant error "<<yytext<<endl<<endl;
+
+		logFile<<"Error at line no "<<yylineno<<": ";
+		logFile<<"Multi character constant error "<<yytext<<endl<<endl;
 	    }
 			    
 {IDENTIFIER} {
@@ -370,6 +382,9 @@ printf {
        
        errorFile<<"Error at line no "<<yylineno<<": ";
        errorFile<<"Unrecognized character "<<yytext<<endl<<endl;
+
+	   logFile<<"Error at line no "<<yylineno<<": ";
+       logFile<<"Unrecognized character "<<yytext<<endl<<endl;
    }
     
 {DIGIT}+ {
@@ -399,6 +414,9 @@ printf {
        
        			errorFile<<"Error at line no "<<yylineno<<": ";
 				errorFile<<"Ill formed number "<<yytext<<endl<<endl;
+
+				logFile<<"Error at line no "<<yylineno<<": ";
+				logFile<<"Ill formed number "<<yytext<<endl<<endl;
 			    }		     		    
 	     		    
 [\.0-9]+({Exp}[\.0-9]*)? {
@@ -406,6 +424,9 @@ printf {
        
 					errorFile<<"Error at line no "<<yylineno<<": ";
 					errorFile<<"Too many decimal points "<<yytext<<endl<<endl;
+
+					logFile<<"Error at line no "<<yylineno<<": ";
+					logFile<<"Too many decimal points "<<yytext<<endl<<endl;
 			  }
 			  
 [\.0-9]+([\.0-9a-zA-Z_]+|{Exp})+ {
@@ -414,9 +435,14 @@ printf {
 						errorFile<<"Error at line no "<<yylineno<<": ";
 						errorFile<<"Invalid prefix on ID or Invalid suffix on Number ";
 						errorFile<<yytext<<endl<<endl;
+
+						logFile<<"Error at line no "<<yylineno<<": ";
+						logFile<<"Invalid prefix on ID or Invalid suffix on Number ";
+						logFile<<yytext<<endl<<endl;
 				  }
 				  
-\/\/ {
+\/\/ {	
+		line_no = yylineno;
 		save_lexeme();
 		BEGIN CMNT_START;
      }
@@ -438,7 +464,8 @@ printf {
 			return 0;
 		     }
 		     
-\/\* {
+\/\* {	
+		line_no = yylineno;
 		save_lexeme();
 		BEGIN MUL_CMNT;
      }
@@ -465,13 +492,17 @@ printf {
 			
 			errorFile<<"Error at line no "<<line_no<<": ";
 			errorFile<<"Unterminated Comment "<<hold_lexeme<<endl;
+
+			logFile<<"Error at line no "<<line_no<<": ";
+			logFile<<"Unterminated Comment "<<hold_lexeme<<endl;
 			
 			hold_lexeme.clear();
 			
 			return 0;
 		   }
 		   
-\" {
+\" {	
+		line_no = yylineno;
 		save_lexeme();
 		BEGIN STR_START;;
    }
@@ -499,6 +530,9 @@ printf {
 			
 			errorFile<<"Error at line no "<<line_no<<": ";
 			errorFile<<"Unterminated String "<<hold_lexeme<<endl<<endl;
+
+			logFile<<"Error at line no "<<line_no<<": ";
+			logFile<<"Unterminated String "<<hold_lexeme<<endl<<endl;
 			
 			hold_lexeme.clear();
 			BEGIN INITIAL;
@@ -509,6 +543,9 @@ printf {
 			
 			errorFile<<"Error at line no "<<line_no<<": ";
 			errorFile<<"Unterminated String "<<hold_lexeme<<endl<<endl;
+
+			logFile<<"Error at line no "<<line_no<<": ";
+			logFile<<"Unterminated String "<<hold_lexeme<<endl<<endl;
 			
 			hold_lexeme.clear();
 			
@@ -520,5 +557,8 @@ printf {
        
        errorFile<<"Error at line no "<<yylineno<<": ";
        errorFile<<"Unrecognized character "<<yytext<<endl<<endl;
+
+	   logFile<<"Error at line no "<<yylineno<<": ";
+       logFile<<"Unrecognized character "<<yytext<<endl<<endl;
   }
 %%
