@@ -1448,6 +1448,7 @@ argument_list : arguments
 					}
 			  | 	{
 						logFile<<"Line "<<yylineno<<": argument_list : \n"<<endl;
+						$$ = NULL;
 					}
 			  ;
 	
