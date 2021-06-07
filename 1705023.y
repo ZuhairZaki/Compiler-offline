@@ -1329,7 +1329,7 @@ factor  : variable {
 						int pos = 1;
 						SymbolInfo* funcParam = $1->paramlist;
 						SymbolInfo* argslist = $3;
-						if(funcParam==NULL||argslist==NULL){
+						if((funcParam==NULL&&argslist!=NULL)||(funcParam!=NULL&&argslist==NULL)){
 							error_count++;
 							errorFile<<"Error at line "<<yylineno;
 							errorFile<<": Total number of arguments mismatch in function "<<$1->getName()<<endl<<endl;
