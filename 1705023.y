@@ -85,9 +85,13 @@ SymbolInfo* paramInsert(SymbolInfo* head,SymbolInfo* s)
 		else if(paramType=="VOID"){
 			paramType = "void";
 		}
-		logFile<<paramType<<" "<<y->getName()<<",";
+		logFile<<paramType<<" ";
+		if(y->getName()=="NO_NAME"){
+			logFile<<",";
+		}
+		else logFile<<y->getName()<<",";
 
-		if(y->getName()==s->getName()){
+		if(y->getName()==s->getName() && s->getName()!="NO_NAME"){
 			mulDec = true;
 		}
 		prev_y = y;
@@ -104,11 +108,16 @@ SymbolInfo* paramInsert(SymbolInfo* head,SymbolInfo* s)
 	else if(paramType=="VOID"){
 		paramType = "void";
 	}
-	logFile<<paramType<<" "<<s->getName()<<"\n\n";
+	logFile<<paramType<<" ";
+	if(s->getName()=="NO_NAME"){
+		logFile<<"\n\n";
+	}
+	else logFile<<s->getName()<<"\n\n";
 
 	if(mulDec){
 		error_count++;
-		errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<s->getName()<<" in parameter"<<endl;
+		errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<s->getName()<<" in parameter"<<endl<<endl;
+		logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<s->getName()<<" in parameter"<<endl<<endl;
 	}
 
 	if(prev_y==NULL)
@@ -137,7 +146,7 @@ start : program
 				symTab->printAllScope(logFile);
 
 				logFile<<"Total lines : "<<yylineno-1<<endl;
-				logFile<<"Total error : "<<error_count<<endl;
+				logFile<<"Total errors : "<<error_count<<endl;
 			}
 	;
 
@@ -191,7 +200,7 @@ unit : var_declaration
 		 	logFile<<"Line "<<yylineno<<": unit : func_definition"<<endl; 
 
 			string s = $1->getName();
-			$$ = new SymbolInfo(s,"unit");
+			$$ = new SymbolInfo(s+"\n","unit");
 
 			logFile<<"\n"<<s<<"\n\n";
 		}
@@ -201,14 +210,16 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 					{
 						if($2->isFunc){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 						}
 						else{
 							string varType = $2->getDataType();
 
 							if(varType!="NO_TYPE"){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 							}
 							else{
 								$2->isFunc = true;
@@ -218,7 +229,7 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 							}
 						}
 
-						string s = "( ";
+						string s = "(";
 						SymbolInfo* param_start = $4;
 						while(param_start!=NULL){
 							string paramType = param_start->getDataType();
@@ -231,12 +242,14 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 							else if(paramType=="VOID"){
 								s += "void ";
 							}
-							s += param_start->getName();
+							if(param_start->getName()!="NO_NAME"){
+								s += param_start->getName();
+							}
 							param_start = param_start->nextInfoObj;
 							if(param_start!=NULL)
 									s += ",";
 						}
-						s += " );";
+						s += ");";
 
 						string func_str = $1->getType()+" "+$2->getName()+s;
 						$$ = new SymbolInfo(func_str,"func_dec");
@@ -250,14 +263,16 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 				{
 					if($2->isFunc){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 					}
 					else{
 						string varType = $2->getDataType();
 
 						if(varType!="NO_TYPE"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 						}
 						else{
 							$2->isFunc = true;
@@ -281,21 +296,34 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						if($2->isFunc){
 							if($2->isDefined){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 							}
 							else{
 								if($2->getDataType()!=$1->getName()){
 									error_count++;
 									errorFile<<"Error at line "<<yylineno;
-									errorFile<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl;
+									errorFile<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl<<endl;
+									logFile<<"Error at line "<<yylineno;
+									logFile<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl<<endl;
 								}
 
 								SymbolInfo* funcParam = $2->paramlist;
 								SymbolInfo* defParam = $4;
+								if(funcParam==NULL){
+									error_count++;
+									errorFile<<"Error at line "<<yylineno;
+									errorFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl<<endl;
+									logFile<<"Error at line "<<yylineno;
+									logFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl<<endl;
+								}
 								while(funcParam!=NULL && defParam!=NULL){
 									if(funcParam->getDataType()!=defParam->getDataType()){
 										error_count++;
-										errorFile<<"Error at line "<<yylineno<<": Parameter type mismatch with declaration in function"<<$2->getName()<<endl;
+										errorFile<<"Error at line "<<yylineno;
+										errorFile<<": Parameter type mismatch with declaration in function"<<$2->getName()<<endl<<endl;
+										logFile<<"Error at line "<<yylineno;
+										logFile<<": Parameter type mismatch with declaration in function"<<$2->getName()<<endl<<endl;
 										break;
 									}
 									funcParam = funcParam->nextInfoObj;
@@ -304,12 +332,15 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 									if((funcParam==NULL&&defParam!=NULL)||(funcParam!=NULL&&defParam==NULL)){
 										error_count++;
 										errorFile<<"Error at line "<<yylineno;
-										errorFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl;
+										errorFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl<<endl;
+										logFile<<"Error at line "<<yylineno;
+										logFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl<<endl;
 										break;
 									}
 								}
 
 								$2->isDefined = true;
+								$2->paramlist = $4;
 							}
 						}
 						else{
@@ -317,7 +348,8 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 
 							if(varType!="NO_TYPE"){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 							}
 							else{
 								$2->isFunc = true;
@@ -332,10 +364,12 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 
 						SymbolInfo* funcParam = $4;
 						while(funcParam!=NULL){
-							if(funcParam->getName()=="NO_TYPE"){
+							if(funcParam->getName()=="NO_NAME"){
 								error_count++;
 								errorFile<<"Error at line "<<yylineno;
-								errorFile<<": Parameter without name in definition of function "<<$2->getName()<<endl;
+								errorFile<<": Parameter without name in definition of function "<<$2->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno;
+								logFile<<": Parameter without name in definition of function "<<$2->getName()<<endl<<endl;
 							}
 							else if(funcParam->getDataType()!="VOID"){
 								SymbolInfo* paramObj = new SymbolInfo(funcParam->getName(),funcParam->getType());
@@ -356,21 +390,28 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						if($2->isFunc){
 							if($2->isDefined){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": Function "<<$2->getName()<<" is already defined"<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 							}
 							else{
 								if($2->getDataType()!=$1->getName()){
 									error_count++;
-									errorFile<<"Error at line "<<yylineno<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl;
+									errorFile<<"Error at line "<<yylineno;
+									errorFile<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl<<endl;
+									logFile<<"Error at line "<<yylineno;
+									logFile<<": Return type mismatch with function declaration in function "<<$2->getName()<<endl<<endl;
 								}
 
 								SymbolInfo* funcParam = $2->paramlist;
 								if(funcParam!=NULL){
 									error_count++;
 									errorFile<<"Error at line "<<yylineno;
-									errorFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl;
+									errorFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl<<endl;
+									logFile<<"Error at line "<<yylineno;
+									logFile<<": Total number of arguments mismatch with declaration in function "<<$2->getName()<<endl<<endl;
 								}
 								$2->isDefined = true;
+								$2->paramlist = NULL;
 							}
 						}
 						else{
@@ -378,7 +419,8 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 
 							if(varType!="NO_TYPE"){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<$2->getName()<<endl<<endl;
 							}
 							else{
 								$2->isFunc = true;
@@ -437,7 +479,9 @@ func_definition : func_def_start compound_end
 							else if(paramType=="VOID"){
 								s += "void ";
 							}
-							s += funcParam->getName();
+							if(funcParam->getName()!="NO_NAME"){
+								s += funcParam->getName();
+							}
 							funcParam = funcParam->nextInfoObj;
 							if(funcParam!=NULL)
 									s += ",";
@@ -466,7 +510,8 @@ parameter_list  : parameter_list COMMA type_specifier ID
 
 						if(paramType=="VOID"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
 						}
 
 						delete $3;
@@ -487,7 +532,8 @@ parameter_list  : parameter_list COMMA type_specifier ID
 
 				if(paramType=="VOID"){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
 				}
 
 				delete $3;
@@ -497,7 +543,8 @@ parameter_list  : parameter_list COMMA type_specifier ID
 				string paramType = $1->getName();
 				if(paramType=="VOID"){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
 				}
 
 				$$ = new SymbolInfo($2->getName(),"ID");
@@ -516,7 +563,8 @@ parameter_list  : parameter_list COMMA type_specifier ID
 				string paramType = $1->getName();
 				if(paramType=="VOID"){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
 				}
 
 				$$ = new SymbolInfo("NO_NAME","ID");
@@ -573,12 +621,17 @@ var_declaration : type_specifier declaration_list SEMICOLON
 						if(varType=="VOID"){
 							error_count++;
 
-							errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Variable type cannot be Void"<<endl<<endl;
 
 							while($2!=NULL){
+								s += head->getName();
 								$2 = $2->nextInfoObj;
 								delete head;
 								head = $2;
+								if(head!=NULL){
+									s += ",";
+								}
 							}
 						}
 						else{
@@ -598,7 +651,8 @@ var_declaration : type_specifier declaration_list SEMICOLON
 								if(!symTab->Insert(item)){
 									error_count++;
 
-									errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<head->getName()<<endl;
+									errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<head->getName()<<endl<<endl;
+									logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<head->getName()<<endl<<endl;
 								}
 								head = head->nextInfoObj;
 
@@ -805,7 +859,7 @@ statement : var_declaration
 			}
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
 	  		{
-				logFile<<"Line "<<yylineno<<": statement : PRINTLN LPAREN ID RPAREN SEMICOLON"<<endl;
+				logFile<<"Line "<<yylineno<<": statement : PRINTLN LPAREN ID RPAREN SEMICOLON\n"<<endl;
 
 				string s = "printf("+$3->getName()+");";
 				$$ = new SymbolInfo(s,"stmt");
@@ -814,20 +868,23 @@ statement : var_declaration
 				int n = $3->getArrSize();
 				if(varType=="NO_TYPE"){
 					error_count++;
-					errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$3->getName()<<endl;
+					errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$3->getName()<<endl<<endl;
+					logFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$3->getName()<<endl<<endl;
 
 					delete $3;
 				}
 				else if(n>=0){
 					error_count++;
-					errorFile<<"Error at line "<<yylineno<<": Array "<<$3->getName()<<" used without an index"<<endl;
+					errorFile<<"Error at line "<<yylineno<<": Type mismatch, "<<$3->getName()<<" is an array"<<endl<<endl;
+					logFile<<"Error at line "<<yylineno<<": Type mismatch, "<<$3->getName()<<" is an array"<<endl<<endl;
 				}
 				else if($3->isFunc){
 					error_count++;
-					errorFile<<"Error at line "<<yylineno<<": "<<$3->getName()<<" is a function"<<endl;
+					errorFile<<"Error at line "<<yylineno<<": Function "<<$3->getName()<<" called without parentheses"<<endl<<endl;
+					logFile<<"Error at line "<<yylineno<<": Function "<<$3->getName()<<" called without parentheses"<<endl<<endl;
 				}
 
-				logFile<<"\n"<<s<<"\n\n";
+				logFile<<s<<"\n\n";
 			}
 	  | RETURN expression SEMICOLON
 	  		{
@@ -865,37 +922,41 @@ expression_statement : SEMICOLON
 	  
 variable : ID 
 			{	
+				logFile<<"Line "<<yylineno<<": variable : ID\n"<<endl;
 				string varType = $1->getDataType();
 				int n = $1->getArrSize();
 
 				if(varType == "NO_TYPE"){
 					error_count++;
 
-					errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl;
+					errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl<<endl;
+					logFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl<<endl;
 				}
 				else if(n>=0){
 					error_count++;
 
-					errorFile<<"Error at line "<<yylineno<<": Type mismatch, "<<$1->getName()<<" is an array"<<endl;
+					errorFile<<"Error at line "<<yylineno<<": Type mismatch, "<<$1->getName()<<" is an array"<<endl<<endl;
+					logFile<<"Error at line "<<yylineno<<": Type mismatch, "<<$1->getName()<<" is an array"<<endl<<endl;
 				}
 				else if($1->isFunc){
 					error_count++;
 
-					errorFile<<"Error at line "<<yylineno<<": Function "<<$1->getName()<<" called without parentheses"<<endl;
+					errorFile<<"Error at line "<<yylineno<<": Function "<<$1->getName()<<" called without parentheses"<<endl<<endl;
+					logFile<<"Error at line "<<yylineno<<": Function "<<$1->getName()<<" called without parentheses"<<endl<<endl;
 				}
 
 				$$ = new SymbolInfo($1->getName(),"var");
 				$$->setDataType(varType);
 				$$->setArrSize(n);
 
-				logFile<<"Line "<<yylineno<<": variable : ID"<<endl;
-				logFile<<"\n"<<$1->getName()<<"\n\n";
+				logFile<<$1->getName()<<"\n\n";
 
 				if(varType=="NO_TYPE")
 					delete $1;
 			}		
 	 | ID LTHIRD expression RTHIRD 
 	 	{	
+			logFile<<"Line "<<yylineno<<": variable : ID LTHIRD expression RTHIRD\n"<<endl;
 			string varType = $1->getDataType();
 			string expType = $3->getDataType();
 			int n = $1->getArrSize();
@@ -903,17 +964,20 @@ variable : ID
 			if(varType == "NO_TYPE"){
 				error_count++;
 
-				errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl;
+				errorFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl<<endl;
+				logFile<<"Error at line "<<yylineno<<": Undeclared variable "<<$1->getName()<<endl<<endl;
 			}
 			else if(n==-1){
 				error_count++;
 
-				errorFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" not an array"<<endl;
+				errorFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" not an array"<<endl<<endl;
+				logFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" not an array"<<endl<<endl;
 			}
 			else if(expType!="INT"){
 				error_count++;
 
-				errorFile<<"Error at line "<<yylineno<<": Expression inside third brackets not an integer"<<endl;
+				errorFile<<"Error at line "<<yylineno<<": Expression inside third brackets not an integer"<<endl<<endl;
+				logFile<<"Error at line "<<yylineno<<": Expression inside third brackets not an integer"<<endl<<endl;
 			}
 
 			string s = $1->getName()+"["+$3->getName()+"]";
@@ -921,8 +985,7 @@ variable : ID
 			$$->setDataType(varType);
 			$$->setArrSize(n);
 
-			logFile<<"Line "<<yylineno<<": variable : ID LTHIRD expression RTHIRD "<<endl;
-			logFile<<"\n"<<s<<"\n\n";
+			logFile<<s<<"\n\n";
 
 			if(varType=="NO_TYPE")
 				delete $1;
@@ -956,11 +1019,13 @@ expression : logic_expression
 					if(varType!="NO_TYPE"){
 						if(expType=="VOID"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 						}
 						else if(varType=="INT" && expType=="FLOAT"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Type mismatch"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Type mismatch"<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Type mismatch"<<endl<<endl;
 						}
 					}
 					else{
@@ -982,7 +1047,7 @@ logic_expression : rel_expression
 					}
 		 | rel_expression LOGICOP rel_expression 	
 		 			{
-						logFile<<"Line "<<yylineno<<": logic_expression : rel_expression LOGICOP rel_expression "<<endl;
+						logFile<<"Line "<<yylineno<<": logic_expression : rel_expression LOGICOP rel_expression\n"<<endl;
 
 						string varType1 = $1->getDataType();
 						string varType2 = $3->getDataType();
@@ -991,12 +1056,13 @@ logic_expression : rel_expression
 						$$ = new SymbolInfo(s,"logic_expr");
 						if(varType1=="VOID"||varType2=="VOID"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 							$$->setDataType("NO_TYPE");
 						}
 						else $$->setDataType("INT");
 
-						logFile<<"\n"<<s<<"\n\n";
+						logFile<<s<<"\n\n";
 
 						delete $1;
 						delete $2;
@@ -1017,7 +1083,7 @@ rel_expression	: simple_expression
 					}
 		| simple_expression RELOP simple_expression	
 					{
-						logFile<<"Line "<<yylineno<<": rel_expression : simple_expression RELOP simple_expression"<<endl;
+						logFile<<"Line "<<yylineno<<": rel_expression : simple_expression RELOP simple_expression\n"<<endl;
 
 						string varType1 = $1->getDataType();
 						string varType2 = $3->getDataType();
@@ -1026,12 +1092,13 @@ rel_expression	: simple_expression
 						$$ = new SymbolInfo(s,"rel_expr");
 						if(varType1=="VOID"||varType2=="VOID"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 							$$->setDataType("NO_TYPE");
 						}
 						else $$->setDataType("INT");
 
-						logFile<<"\n"<<s<<"\n\n";
+						logFile<<s<<"\n\n";
 
 						delete $1;
 						delete $2;
@@ -1052,7 +1119,7 @@ simple_expression : term
 						}
 		  | simple_expression ADDOP term 
 		  		{
-					logFile<<"Line "<<yylineno<<": simple_expression : simple_expression ADDOP term"<<endl;
+					logFile<<"Line "<<yylineno<<": simple_expression : simple_expression ADDOP term\n"<<endl;
 
 					string varType1 = $1->getDataType();
 					string varType2 = $3->getDataType();
@@ -1061,7 +1128,8 @@ simple_expression : term
 					$$ = new SymbolInfo(s,"simple_expr");
 					if(varType1=="VOID"||varType2=="VOID"){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 						$$->setDataType("NO_TYPE");
 					}
 					else{
@@ -1074,7 +1142,7 @@ simple_expression : term
 						else $$->setDataType("INT");
 					}
 
-					logFile<<"\n"<<s<<"\n\n";
+					logFile<<s<<"\n\n";
 
 					delete $1;
 					delete $2;
@@ -1095,7 +1163,7 @@ term :	unary_expression
 			}
      |  term MULOP unary_expression
 	 		{
-				logFile<<"Line "<<yylineno<<": term : term MULOP unary_expression "<<endl;
+				logFile<<"Line "<<yylineno<<": term : term MULOP unary_expression\n"<<endl;
 
 				string varType1 = $1->getDataType();
 				string varType2 = $3->getDataType();
@@ -1105,13 +1173,15 @@ term :	unary_expression
 				$$ = new SymbolInfo(s,"term");
 				if(varType1=="VOID"||varType2=="VOID"){
 					error_count++;
-					errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+					errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+					logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 					$$->setDataType("NO_TYPE");
 				}
 				else if(op=="%"){
 					if(varType1=="FLOAT"||varType2=="FLOAT"){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Non-integer operands on modulus operator"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Non-integer operands on modulus operator"<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Non-integer operands on modulus operator"<<endl<<endl;
 						$$->setDataType("NO_TYPE");
 					}
 					else {
@@ -1120,7 +1190,8 @@ term :	unary_expression
 							int objVal = stoi($3->getName());
 							if(objVal==0){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": Modulus by Zero"<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Modulus by Zero"<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": Modulus by Zero"<<endl<<endl;
 								$$->setDataType("NO_TYPE");
 							}
 							else $$->setDataType(varType2);
@@ -1141,7 +1212,7 @@ term :	unary_expression
 					else $$->setDataType("INT");
 				}
 
-				logFile<<"\n"<<s<<"\n\n";
+				logFile<<s<<"\n\n";
 
 				delete $1;
 				delete $2;
@@ -1151,7 +1222,7 @@ term :	unary_expression
 
 unary_expression : ADDOP unary_expression  
 					{	
-						logFile<<"Line "<<yylineno<<": unary_expression : ADDOP unary_expression"<<endl;
+						logFile<<"Line "<<yylineno<<": unary_expression : ADDOP unary_expression\n"<<endl;
 
 						string s = $1->getName()+$2->getName();
 						$$ = new SymbolInfo(s,"unary_exp");
@@ -1159,19 +1230,20 @@ unary_expression : ADDOP unary_expression
 
 						if(varType=="VOID"){
 							error_count++;
-							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+							errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+							logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 							$$->setDataType("NO_TYPE");
 						}
 						else $$->setDataType(varType);
 
-						logFile<<"\n"<<s<<"\n\n";
+						logFile<<s<<"\n\n";
 
 						delete $1;
 						delete $2;
 					}
 		 | NOT unary_expression 
 				{	
-					logFile<<"Line "<<yylineno<<": unary_expression : NOT unary_expression"<<endl;
+					logFile<<"Line "<<yylineno<<": unary_expression : NOT unary_expression\n"<<endl;
 
 					string s = "!"+$2->getName();
 					$$ = new SymbolInfo(s,"unary_exp");
@@ -1179,7 +1251,8 @@ unary_expression : ADDOP unary_expression
 
 					if(varType=="VOID"){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 						$$->setDataType("NO_TYPE");
 					}
 					else if(varType=="NO_TYPE"){
@@ -1187,7 +1260,7 @@ unary_expression : ADDOP unary_expression
 					}
 					else $$->setDataType("INT");
 
-					logFile<<"\n"<<s<<"\n\n";
+					logFile<<s<<"\n\n";
 
 					delete $2;
 				}
@@ -1225,6 +1298,7 @@ factor  : variable {
 				}
 	| ID LPAREN argument_list RPAREN 
 				{	
+					logFile<<"Line "<<yylineno<<": factor : ID LPAREN argument_list RPAREN\n"<<endl;
 					string varType = $1->getDataType();
 
 					string s = "";
@@ -1233,34 +1307,47 @@ factor  : variable {
 						s += arg_start->getName();
 						arg_start = arg_start->nextInfoObj;
 						if(arg_start!=NULL)
-							s += " , ";
+							s += ",";
 					}
-					string fac_name = $1->getName()+"( "+s+" )";
+					string fac_name = $1->getName()+"("+s+")";
 					$$ = new SymbolInfo(fac_name,"factor");
 
 					if(varType=="NO_TYPE"){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": Undeclared function "<<$1->getName()<<endl;
+						errorFile<<"Error at line "<<yylineno<<": Undeclared function "<<$1->getName()<<endl<<endl;
+						logFile<<"Error at line "<<yylineno<<": Undeclared function "<<$1->getName()<<endl<<endl;
 						delete $1;
 					}
 					else if(!$1->isFunc){
 						error_count++;
-						errorFile<<"Error at line "<<yylineno<<": "<<$1->getName()<<" is not a function"<<endl;
+						errorFile<<"Error at line "<<yylineno;
+						errorFile<<": Function call with non-function type identifier "<<$1->getName()<<endl<<endl;
+						logFile<<"Error at line "<<yylineno;
+						logFile<<": Function call with non-function type identifier "<<$1->getName()<<endl<<endl;
 					}
 					else{
 						int pos = 1;
 						SymbolInfo* funcParam = $1->paramlist;
 						SymbolInfo* argslist = $3;
+						if(funcParam==NULL||argslist==NULL){
+							error_count++;
+							errorFile<<"Error at line "<<yylineno;
+							errorFile<<": Total number of arguments mismatch in function "<<$1->getName()<<endl<<endl;
+							logFile<<"Error at line "<<yylineno;
+							logFile<<": Total number of arguments mismatch in function "<<$1->getName()<<endl<<endl;
+						}
 						while(funcParam!=NULL && argslist!=NULL){
 							string varType1 = funcParam->getDataType();
 							string varType2 = argslist->getDataType();
 							if(varType2=="VOID"){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl;
+								errorFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": Void function used in expression"<<endl<<endl;
 							}
 							else if(varType1=="VOID" || (varType1=="INT" && varType2=="FLOAT")){
 								error_count++;
-								errorFile<<"Error at line "<<yylineno<<": "<<pos<<"th argument mismatch in function "<<$1->getName()<<endl;
+								errorFile<<"Error at line "<<yylineno<<": "<<pos<<"th argument mismatch in function "<<$1->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno<<": "<<pos<<"th argument mismatch in function "<<$1->getName()<<endl<<endl;
 								break;
 							}
 							funcParam = funcParam->nextInfoObj;
@@ -1270,7 +1357,9 @@ factor  : variable {
 							if((funcParam==NULL&&argslist!=NULL)||(funcParam!=NULL&&argslist==NULL)){
 								error_count++;
 								errorFile<<"Error at line "<<yylineno;
-								errorFile<<": Total number of arguments mismatch in function "<<$1->getName()<<endl;
+								errorFile<<": Total number of arguments mismatch in function "<<$1->getName()<<endl<<endl;
+								logFile<<"Error at line "<<yylineno;
+								logFile<<": Total number of arguments mismatch in function "<<$1->getName()<<endl<<endl;
 								break;
 							}
 						}
@@ -1278,8 +1367,7 @@ factor  : variable {
 
 					$$->setDataType(varType);
 
-					logFile<<"Line "<<yylineno<<": factor : ID LPAREN argument_list RPAREN"<<endl;
-					logFile<<"\n"<<fac_name<<"\n\n";
+					logFile<<fac_name<<"\n\n";
 				}
 	| LPAREN expression RPAREN
 				{	
@@ -1351,7 +1439,7 @@ argument_list : arguments
 							s += arg_start->getName();
 							arg_start = arg_start->nextInfoObj;
 							if(arg_start!=NULL)
-								s += " , ";
+								s += ",";
 						}
 
 						logFile<<"Line "<<yylineno<<": argument_list : arguments"<<endl;
