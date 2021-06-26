@@ -9,6 +9,9 @@ class SymbolInfo
     int arrSize;
 
 public:
+    string code;
+    int addr;
+
     bool isFunc;
     bool isDefined;
     SymbolInfo* nextInfoObj;
@@ -20,6 +23,9 @@ public:
         isFunc = false;
         isDefined = false;
         paramlist = NULL;
+        
+        code = "";
+        addr = -1;
     }
 
     SymbolInfo(string name,string type){

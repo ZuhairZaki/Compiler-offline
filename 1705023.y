@@ -382,6 +382,7 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						$$ = new SymbolInfo($2->getName(),"ID");
 						$$->setDataType($1->getName());
 						$$->paramlist = $4;
+						$$->code = $2->getName()+" PROC\n";
 
 						delete $1;
 					}
@@ -434,6 +435,11 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 
 						$$ = new SymbolInfo($2->getName(),"ID");
 						$$->setDataType($1->getName());
+						$$->code = $2->getName()+" PROC\n";
+						if($2->getName()=="main"){
+							$$->code += "MOV AX,@DATA\n";
+							$$->code += "MOV DS,AX\n";
+						}
 
 						delete $1;
 					}
@@ -491,6 +497,13 @@ func_definition : func_def_start compound_end
 						string func_str = s + comp_str;
 						$$ = new SymbolInfo(func_str,"func_def");
 						logFile<<"\n"<<func_str<<"\n\n";
+
+						$$->code = $1->code;
+						if($1->getName()=="main"){
+							$$->code += "MOV AH,4CH\n";
+							$$->code += "INT 21H\n";
+						}
+						$$->code += $1->getName()+" ENDP\n";
 
 						symTab->exitScope();
 					}
