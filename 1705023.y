@@ -22,9 +22,22 @@ SymbolTable* symTab = new SymbolTable(n,globalScope);
 ofstream errorFile("error.txt");
 ofstream logFile("log.txt");
 
+int var_count = 0;
+int curr_offset = 0;
+stack<int> prev_offset;
+string data_seg = "";
+
 void yyerror(char *str)
 {
 	cout<<"Syntax error"<<endl;
+}
+
+string createNewVar()
+{
+	var_count++;
+	string var_name = "var"+to_string(var_count);
+	data_seg += var_name+" DW ?\n";
+	return var_name;
 }
 
 SymbolInfo* insertItem(SymbolInfo* head,SymbolInfo* s)
@@ -201,6 +214,7 @@ unit : var_declaration
 
 			string s = $1->getName();
 			$$ = new SymbolInfo(s+"\n","unit");
+			$$->code = $1->code;
 
 			logFile<<"\n"<<s<<"\n\n";
 		}
@@ -363,7 +377,18 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						symTab->enterScope();
 
 						SymbolInfo* funcParam = $4;
+						int no_param = 0;
 						while(funcParam!=NULL){
+							no_param++;
+							funcParam = funcParam->nextInfoObj;
+						}
+						
+						funcParam = $4;
+						while(funcParam!=NULL){
+							funcParam->var_scope = "param";
+							funcParam->addr = n;
+							funcParam->var_symbol = "WORD PTR[BP+"+to_string(n);
+
 							if(funcParam->getName()=="NO_NAME"){
 								error_count++;
 								errorFile<<"Error at line "<<yylineno;
@@ -374,9 +399,13 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 							else if(funcParam->getDataType()!="VOID"){
 								SymbolInfo* paramObj = new SymbolInfo(funcParam->getName(),funcParam->getType());
 								paramObj->setDataType(funcParam->getDataType());
+								paramObj->var_scope = funcParam->var_scope;
+								paramObj->addr = funcParam->addr;
+								paramObj->var_symbol = funcParam->var_symbol;
 								symTab->Insert(paramObj);
 							}
 							funcParam = funcParam->nextInfoObj;
+							n--;
 						}
 
 						$$ = new SymbolInfo($2->getName(),"ID");
@@ -666,6 +695,22 @@ var_declaration : type_specifier declaration_list SEMICOLON
 
 									errorFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<head->getName()<<endl<<endl;
 									logFile<<"Error at line "<<yylineno<<": Multiple declaration of "<<head->getName()<<endl<<endl;
+								}
+								else{
+									if(symTab->isGlobal()){
+										item->var_scope = "global";
+										item->var_symbol = createNewVar();
+									}
+									else{
+										item->var_scope = "local";
+
+										if(n>=0)
+											curr_offset += 2*n;
+										else curr_offset += 2;
+
+										item->addr = curr_offset;				
+										item->var_symbol = "WORD PTR[BP-"+to_string(item->addr);
+									}
 								}
 								head = head->nextInfoObj;
 
@@ -961,6 +1006,7 @@ variable : ID
 				$$ = new SymbolInfo($1->getName(),"var");
 				$$->setDataType(varType);
 				$$->setArrSize(n);
+				$$->var_symbol = $1->var_symbol;
 
 				logFile<<$1->getName()<<"\n\n";
 

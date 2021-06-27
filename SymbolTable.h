@@ -10,6 +10,8 @@ class SymbolInfo
 
 public:
     string code;
+    string var_symbol;
+    string var_scope;
     int addr;
 
     bool isFunc;
@@ -25,6 +27,8 @@ public:
         paramlist = NULL;
         
         code = "";
+        var_symbol = "no_address";
+        var_scope = "no_scope";
         addr = -1;
     }
 
@@ -274,6 +278,10 @@ public:
     int getBucketSize()
     {
         return bucketSize;
+    }
+
+    bool isGlobal(){
+        return currScope->parentScope == NULL;
     }
 
     void enterScope()
