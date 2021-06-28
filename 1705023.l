@@ -213,6 +213,10 @@ printf {
 
 			return PRINTLN;
 		}
+
+println {
+			return PRINTLN;
+		}
     
 [+-] {
 		token_name = "ADDOP";

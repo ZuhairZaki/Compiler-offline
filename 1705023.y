@@ -25,7 +25,12 @@ ofstream logFile("log.txt");
 int var_count = 0;
 int curr_offset = 0;
 stack<int> prev_offset;
-string data_seg = "";
+string data_seg = ".DATA\n";
+
+int max_temp = 0;
+int temp_count = 0;
+
+int label_count = 0;
 
 void yyerror(char *str)
 {
@@ -36,8 +41,24 @@ string createNewVar()
 {
 	var_count++;
 	string var_name = "var"+to_string(var_count);
-	data_seg += var_name+" DW ?\n";
 	return var_name;
+}
+
+string createTempVar()
+{	
+	string var_name = "t"+to_string(temp_count);
+
+	if(temp_count==max_temp)
+		max_temp++;
+
+	temp_count++;
+	return var_name;
+}
+
+string createNewLabel()
+{
+	label_count++;
+	return "L"+to_string(label_count);
 }
 
 SymbolInfo* insertItem(SymbolInfo* head,SymbolInfo* s)
@@ -387,7 +408,7 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						while(funcParam!=NULL){
 							funcParam->var_scope = "param";
 							funcParam->addr = n;
-							funcParam->var_symbol = "WORD PTR[BP+"+to_string(n);
+							funcParam->var_symbol = "WORD PTR[BP+"+to_string(n)+"]";
 
 							if(funcParam->getName()=="NO_NAME"){
 								error_count++;
@@ -657,6 +678,7 @@ var_declaration : type_specifier declaration_list SEMICOLON
 					{	
 						string varType = $1->getName();
 						string s = "";
+						string data_str ="";
 
 						SymbolInfo* head = $2;
 
@@ -700,6 +722,11 @@ var_declaration : type_specifier declaration_list SEMICOLON
 									if(symTab->isGlobal()){
 										item->var_scope = "global";
 										item->var_symbol = createNewVar();
+
+										data_str += item->var_symbol+" DW ";
+										if(n>=0)
+											data_str += to_string(n)+" DUP (?)\n";
+										else data_str += "?\n";
 									}
 									else{
 										item->var_scope = "local";
@@ -709,7 +736,7 @@ var_declaration : type_specifier declaration_list SEMICOLON
 										else curr_offset += 2;
 
 										item->addr = curr_offset;				
-										item->var_symbol = "WORD PTR[BP-"+to_string(item->addr);
+										item->var_symbol = "WORD PTR[BP-"+to_string(item->addr)+"]";
 									}
 								}
 								head = head->nextInfoObj;
@@ -722,6 +749,8 @@ var_declaration : type_specifier declaration_list SEMICOLON
 
 						string unit_name = $1->getType()+" "+s+";";
 						$$ = new SymbolInfo(unit_name,"var_dec");
+
+						data_seg += ";"+unit_name+"\n"+data_str+"\n";
 
 						logFile<<"Line "<<yylineno<<": var_declaration : type_specifier declaration_list SEMICOLON"<<endl;
 						logFile<<"\n"<<unit_name<<"\n\n";
@@ -1044,6 +1073,14 @@ variable : ID
 			$$->setDataType(varType);
 			$$->setArrSize(n);
 
+			$$->code = $3->code+"\n";
+			$$->code += "MOV SI, "+$3->var_symbol+"\n";
+			$$->code += "SHL SI, 1\n\n";
+			$$->var_symbol = $1->var_symbol+"[SI]";
+
+			temp_count--;
+			
+
 			logFile<<s<<"\n\n";
 
 			if(varType=="NO_TYPE")
@@ -1215,6 +1252,8 @@ term :	unary_expression
 
 				$$ = new SymbolInfo($1->getName(),"term");
 				$$->setDataType($1->getDataType());
+				$$->code = $1->code;
+				$$->var_symbol = $1->var_symbol;
 
 				logFile<<"\n"<<$1->getName()<<"\n\n";
 
@@ -1297,6 +1336,11 @@ unary_expression : ADDOP unary_expression
 
 						logFile<<s<<"\n\n";
 
+						$$->code = $2->code;
+						if($1->getName()=="-")
+							$$->code += "NEG "+$2->var_symbol+"\n\n";
+						$$->var_symbol = $2->var_symbol;
+
 						delete $1;
 						delete $2;
 					}
@@ -1319,6 +1363,20 @@ unary_expression : ADDOP unary_expression
 					}
 					else $$->setDataType("INT");
 
+					string label1 = createNewLabel();
+					string label2 = createNewLabel();
+
+					$$->code = $2->code;
+					$$->code += "CMP "+$2->var_symbol+", 0\n";
+					$$->code += "JE "+label1+"\n";
+					$$->code += "MOV "+$2->var_symbol+", 0\n";
+					$$->code += "JUMP "+label2+"\n";
+					$$->code += label1+":\nMOV "+$2->var_symbol+", 1\n";
+					$$->code += label2+":\n\n";
+
+					$$->var_symbol = $2->var_symbol;
+
+
 					logFile<<s<<"\n\n";
 
 					delete $2;
@@ -1339,6 +1397,9 @@ unary_expression : ADDOP unary_expression
 
 						delete $1;
 					}
+
+					$$->var_symbol = $1->var_symbol;
+					$$->code = $1->code;
 				}
 		 ;
 	
@@ -1349,6 +1410,11 @@ factor  : variable {
 
 						$$ = new SymbolInfo($1->getName(),"factor");
 						$$->setDataType(varType);
+
+						$$->var_symbol = createTempVar();
+						$$->code = $1->code;
+						$$->code += "MOV AX, "+$1->var_symbol+"\n";
+						$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
 						logFile<<"\n"<<$1->getName()<<"\n\n";
 
@@ -1435,6 +1501,8 @@ factor  : variable {
 					string s = "("+$2->getName()+")";
 					$$ = new SymbolInfo(s,"factor");
 					$$->setDataType($2->getDataType());
+					$$->code = $2->code;
+					$$->var_symbol = $2->var_symbol;
 
 					logFile<<"\n"<<s<<"\n\n";
 
@@ -1447,6 +1515,9 @@ factor  : variable {
 				$$ = $1;
 				$$->setDataType("INT");
 
+				$$->var_symbol = createTempVar();
+				$$->code = "MOV "+$$->var_symbol+", "+$$->getName()+"\n\n";
+
 				logFile<<"\n"<<$1->getName()<<"\n\n";
 			}
 	| CONST_FLOAT
@@ -1455,6 +1526,9 @@ factor  : variable {
 
 				$$ = $1;
 				$$->setDataType("FLOAT");
+
+				$$->var_symbol = createTempVar();
+				$$->code = "MOV "+$$->var_symbol+", "+$$->getName()+"\n\n";
 
 				logFile<<"\n"<<$1->getName()<<"\n\n";
 			}
@@ -1467,6 +1541,11 @@ factor  : variable {
 				string s = $1->getName()+"++";
 				$$ = new SymbolInfo(s,"factor");
 				$$->setDataType(varType);
+
+				$$->var_symbol = createTempVar();
+				$$->code = $1->code;
+				$$->code += "ADD "+$1->var_symbol+", 1\n";
+				$$->code += "MOV "+$$->var_symbol+", "+$1->var_symbol+"\n\n";
 
 				logFile<<"\n"<<s<<"\n\n";
 
@@ -1482,6 +1561,11 @@ factor  : variable {
 				string s = $1->getName()+"--";
 				$$ = new SymbolInfo(s,"factor");
 				$$->setDataType(varType);
+
+				$$->var_symbol = createTempVar();
+				$$->code = $1->code;
+				$$->code = "SUB "+$1->var_symbol+", 1\n";
+				$$->code += "MOV "+$$->var_symbol+", "+$1->var_symbol+"\n\n";
 
 				logFile<<"\n"<<s<<"\n\n";
 
