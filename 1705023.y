@@ -38,9 +38,9 @@ void yyerror(char *str)
 }
 
 string createNewVar()
-{
-	var_count++;
+{	
 	string var_name = "var"+to_string(var_count);
+	var_count++;
 	return var_name;
 }
 
@@ -50,15 +50,16 @@ string createTempVar()
 
 	if(temp_count==max_temp)
 		max_temp++;
-
 	temp_count++;
+
 	return var_name;
 }
 
 string createNewLabel()
 {
+	string label_name = "L"+to_string(label_count);
 	label_count++;
-	return "L"+to_string(label_count);
+	return label_name;
 }
 
 SymbolInfo* insertItem(SymbolInfo* head,SymbolInfo* s)
@@ -1172,6 +1173,8 @@ rel_expression	: simple_expression
 
 						$$ = new SymbolInfo($1->getName(),"rel_expr");
 						$$->setDataType($1->getDataType());
+						$$->code = $1->code;
+						$$->var_symbol = $1->var_symbol;
 
 						logFile<<"\n"<<$1->getName()<<"\n\n";
 
@@ -1183,6 +1186,7 @@ rel_expression	: simple_expression
 
 						string varType1 = $1->getDataType();
 						string varType2 = $3->getDataType();
+						string op = $2->getName();
 						
 						string s = $1->getName()+$2->getName()+$3->getName();
 						$$ = new SymbolInfo(s,"rel_expr");
@@ -1193,6 +1197,38 @@ rel_expression	: simple_expression
 							$$->setDataType("NO_TYPE");
 						}
 						else $$->setDataType("INT");
+
+						string label1 = createNewLabel();
+						string label2 = createNewLabel();
+
+						$$->code = $1->code + $3->code;
+						$$->code += "MOV AX, "+$1->var_symbol+"\n";
+						$$->code += "CMP AX, "+$3->var_symbol+"\n";
+						if(op==">"){
+							$$->code += "JG "+label1+"\n";
+						}
+						else if(op==">="){
+							$$->code += "JGE "+label1+"\n";
+						}
+						else if(op=="<"){
+							$$->code += "JL "+label1+"\n";
+						}
+						else if(op=="<="){
+							$$->code += "JLE "+label1+"\n";
+						}
+						else if(op=="=="){
+							$$->code += "JE "+label1+"\n";
+						}
+						else{
+							$$->code += "JNE "+label1+"\n";
+						}
+						$$->code += "MOV "+$1->var_symbol+", 0\n";
+						$$->code += "JMP "+label2+"\n";
+						$$->code += label1+":\nMOV "+$1->var_symbol+", 1\n";
+						$$->code += label2+":\n\n";
+
+						$$->var_symbol = $1->var_symbol;
+						temp_count--;
 
 						logFile<<s<<"\n\n";
 
@@ -1208,6 +1244,8 @@ simple_expression : term
 
 							$$ = new SymbolInfo($1->getName(),"simple_expr");
 							$$->setDataType($1->getDataType());
+							$$->code = $1->code;
+							$$->var_symbol = $1->var_symbol;
 
 							logFile<<"\n"<<$1->getName()<<"\n\n";
 
@@ -1219,6 +1257,7 @@ simple_expression : term
 
 					string varType1 = $1->getDataType();
 					string varType2 = $3->getDataType();
+					string op = $2->getName();
 					
 					string s = $1->getName()+$2->getName()+$3->getName();
 					$$ = new SymbolInfo(s,"simple_expr");
@@ -1237,6 +1276,17 @@ simple_expression : term
 						}
 						else $$->setDataType("INT");
 					}
+
+					$$->code = $1->code + $3->code;
+					$$->code += "MOV AX, "+$1->var_symbol+"\n";
+					if(op=="+")
+						$$->code += "ADD AX, "+$3->var_symbol+"\n";
+					else
+						$$->code += "SUB AX, "+$3->var_symbol+"\n";
+					$$->code += "MOV "+$1->var_symbol+", AX\n\n";
+
+					$$->var_symbol = $1->var_symbol;
+					temp_count--;
 
 					logFile<<s<<"\n\n";
 
@@ -1310,6 +1360,37 @@ term :	unary_expression
 					else $$->setDataType("INT");
 				}
 
+				$$->code = $1->code + $3->code;
+				if(op=="*"){
+					$$->code += "MOV AX, "+$1->var_symbol+"\n";
+					$$->code += "IMUL "+$3->var_symbol+"\n";
+					$$->code += "MOV "+$1->var_symbol+", AX\n\n";
+
+					$$->var_symbol = $1->var_symbol;
+					temp_count--;
+				}
+				else{
+					string label1 = createNewLabel();
+					string label2 = createNewLabel();
+
+					$$->code += "CMP "+$1->var_symbol+", 0\n";
+					$$->code += "JL "+label1+"\n";
+					$$->code += "MOV DX, 0\n";
+					$$->code += "JMP "+label2+"\n";
+					$$->code += label1+":\nMOV DX, OFFFFH\n";
+					$$->code += label2+":\n";
+					$$->code += "MOV AX, "+$1->var_symbol+"\n";
+					$$->code += "IDIV "+$3->var_symbol+"\n";
+
+					if(op=="/")
+						$$->code += "MOV "+$1->var_symbol+", AX\n\n";
+					else
+						$$->code += "MOV "+$1->var_symbol+", DX\n\n";
+
+					$$->var_symbol = $1->var_symbol;
+					temp_count--;
+				}
+
 				logFile<<s<<"\n\n";
 
 				delete $1;
@@ -1370,12 +1451,11 @@ unary_expression : ADDOP unary_expression
 					$$->code += "CMP "+$2->var_symbol+", 0\n";
 					$$->code += "JE "+label1+"\n";
 					$$->code += "MOV "+$2->var_symbol+", 0\n";
-					$$->code += "JUMP "+label2+"\n";
+					$$->code += "JMP "+label2+"\n";
 					$$->code += label1+":\nMOV "+$2->var_symbol+", 1\n";
 					$$->code += label2+":\n\n";
 
 					$$->var_symbol = $2->var_symbol;
-
 
 					logFile<<s<<"\n\n";
 
