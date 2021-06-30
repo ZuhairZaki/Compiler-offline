@@ -644,6 +644,7 @@ parameter_list  : parameter_list COMMA type_specifier ID
 
 compound_start : LCURL {
 							symTab->enterScope();
+							prev_offset.push(curr_offset);
 					   }
 			;
 
@@ -653,6 +654,7 @@ compound_end : statements RCURL
 
 							string s = $1->getName()+"\n}";
 							$$ = new SymbolInfo(s,"comp");
+							$$->code = $1->code;
 
 							delete $1;
 						}
@@ -668,6 +670,12 @@ compound_statement : compound_start compound_end
 						{
 							string s = "{\n"+$2->getName();
 							$$ = new SymbolInfo(s,"comp_stmt");
+							$$->code = $2->code;
+
+							if(!prev_offset.empty()){
+								curr_offset = prev_offset.top();
+								prev_offset.pop();
+							}
 
 							logFile<<"\n"<<s<<"\n\n";
 
@@ -839,6 +847,7 @@ statements : statement
 
 					string s = $1->getName();
 					$$ = new SymbolInfo(s,"stmts");
+					$$->code = $1->code;
 
 					logFile<<"\n"<<s<<"\n\n";
 
@@ -850,6 +859,7 @@ statements : statement
 
 					string s = $1->getName()+"\n"+$2->getName();
 					$$ = new SymbolInfo(s,"stmts");
+					$$->code = $1->code + $2->code;
 
 					logFile<<"\n"<<s<<"\n\n";
 
@@ -875,6 +885,8 @@ statement : var_declaration
 
 			string s = $1->getName();
 			$$ = new SymbolInfo(s,"stmt");
+			$$->code = $1->code;
+			temp_count--;
 
 			logFile<<"\n"<<s<<"\n\n";
 
@@ -887,6 +899,8 @@ statement : var_declaration
 
 			string s = $1->getName();
 			$$ = new SymbolInfo(s,"stmt");
+			$$->code = $1->code;
+
 			logFile<<"\n"<<s<<"\n\n";
 
 			symTab->exitScope();
@@ -900,6 +914,21 @@ statement : var_declaration
 
 			string s = "for( "+$3->getName()+" "+$4->getName()+" "+$5->getName()+" )\n"+$7->getName();
 			$$ = new SymbolInfo(s,"stmt");
+
+			string label1 = createNewLabel();
+			string label2 = createNewLabel();
+
+			$$->code = $3->code;
+			$$->code += "JMP "+label1+"\n";
+			$$->code += label2+":\n";
+			$$->code += $7->code;
+			$$->code += $5->code;
+			$$->code += label1+":\n";
+			$$->code += $4->code;
+			$$->code += "CMP "+$4->var_symbol+", 0\n";
+			$$->code += "JNE "+label2+"\n\n";
+
+			temp_count -= 3;
 
 			logFile<<"\n"<<s<<"\n\n";
 
@@ -915,6 +944,16 @@ statement : var_declaration
 				string s = "if( "+$3->getName()+" )\n"+$5->getName();
 				$$ = new SymbolInfo(s,"stmt");
 
+				string label1 = createNewLabel();
+				
+				$$->code = $3->code;
+				$$->code += "CMP "+$3->var_symbol+", 0\n";
+				$$->code += "JE "+label1+"\n";
+				$$->code += $5->code;
+				$$->code += label1+":\n\n";
+
+				temp_count--;
+
 				logFile<<"\n"<<s<<"\n\n";
 
 				delete $3;
@@ -926,6 +965,20 @@ statement : var_declaration
 
 				string s = "if( "+$3->getName()+" )\n"+$5->getName()+"\nelse "+$7->getName();
 				$$ = new SymbolInfo(s,"stmt");
+
+				string label1 = createNewLabel();
+				string label2 = createNewLabel();
+				
+				$$->code = $3->code;
+				$$->code += "CMP "+$3->var_symbol+", 0\n";
+				$$->code += "JE "+label1+"\n";
+				$$->code += $5->code;
+				$$->code += "JMP "+label2+"\n";
+				$$->code += label1+":\n";
+				$$->code += $7->code;
+				$$->code += label2+":\n\n";
+
+				temp_count--;
 
 				logFile<<"\n"<<s<<"\n\n";
 
@@ -939,6 +992,19 @@ statement : var_declaration
 
 				string s = "while( "+$3->getName()+" )\n"+$5->getName();
 				$$ = new SymbolInfo(s,"stmt");
+
+				string label1 = createNewLabel();
+				string label2 = createNewLabel();
+
+				$$->code = "JMP "+label1+"\n";
+				$$->code += label2+":\n";
+				$$->code += $5->code;
+				$$->code += label1+":\n";
+				$$->code += $3->code;
+				$$->code += "CMP "+$3->var_symbol+", 0\n";
+				$$->code += "JNE "+label2+"\n\n";
+
+				temp_count--;
 
 				logFile<<"\n"<<s<<"\n\n";
 
@@ -992,6 +1058,8 @@ expression_statement : SEMICOLON
 					logFile<<"Line "<<yylineno<<": expression_statement : SEMICOLON"<<endl;	
 
 					$$ = new SymbolInfo(";","expr_stmt");
+					$$->var_symbol = createTempVar();
+
 					logFile<<"\n;\n\n";
 				}		
 			| expression SEMICOLON 
@@ -1001,6 +1069,8 @@ expression_statement : SEMICOLON
 					string s = $1->getName()+";";
 					$$ = new SymbolInfo(s,"expr_stmt");
 					$$->setDataType($1->getDataType());
+					$$->code = $1->code;
+					$$->var_symbol = $1->var_symbol;
 
 					logFile<<"\n"<<s<<"\n\n";
 
@@ -1095,6 +1165,8 @@ expression : logic_expression
 
 					$$ = new SymbolInfo($1->getName(),"expr");
 					$$->setDataType($1->getDataType());
+					$$->code = $1->code;
+					$$->var_symbol = $1->var_symbol;
 
 					logFile<<"\n"<<$1->getName()<<"\n\n";
 
@@ -1110,6 +1182,10 @@ expression : logic_expression
 					string s = $1->getName()+" = "+$3->getName();
 					$$ = new SymbolInfo(s,"expr");
 					$$->setDataType(expType);
+					$$->code = $3->code;
+					$$->code += "MOV AX, "+$3->var_symbol+"\n";
+					$$->code += "MOV "+$1->var_symbol+", AX\n\n";
+					$$->var_symbol = $3->var_symbol;
 
 					logFile<<"\n"<<s<<"\n\n";
 
@@ -1137,6 +1213,8 @@ logic_expression : rel_expression
 
 						$$ = new SymbolInfo($1->getName(),"logic_expr");
 						$$->setDataType($1->getDataType());
+						$$->code = $1->code;
+						$$->var_symbol = $1->var_symbol;
 
 						logFile<<"\n"<<$1->getName()<<"\n\n";
 
@@ -1148,7 +1226,8 @@ logic_expression : rel_expression
 
 						string varType1 = $1->getDataType();
 						string varType2 = $3->getDataType();
-						
+						string op = $2->getName();
+;						
 						string s = $1->getName()+$2->getName()+$3->getName();
 						$$ = new SymbolInfo(s,"logic_expr");
 						if(varType1=="VOID"||varType2=="VOID"){
@@ -1158,6 +1237,38 @@ logic_expression : rel_expression
 							$$->setDataType("NO_TYPE");
 						}
 						else $$->setDataType("INT");
+
+						string label1 = createNewLabel();
+						string label2 = createNewLabel();
+						string label3 = createNewLabel();
+
+						$$->code = $1->code + $3->code;
+						if(op=="||"){
+							$$->code += "CMP "+$1->var_symbol+", 0\n";
+							$$->code += "JE "+label1+"\n";
+							$$->code += "MOV "+$1->var_symbol+", 1\n";
+							$$->code += "JMP "+label2+"\n";
+							$$->code += label1+":\nCMP "+$3->var_symbol+", 0\n";
+							$$->code += "JE "+label3+"\n";
+							$$->code += "MOV "+$1->var_symbol+", 1\n";
+							$$->code += "JMP "+label2+"\n";
+							$$->code += label3+":\nMOV "+$1->var_symbol+", 0\n";
+							$$->code += label2+":\n\n";
+						}
+						else{
+							$$->code += "CMP "+$1->var_symbol+", 0\n";
+							$$->code += "JNE "+label1+"\n";
+							$$->code += "MOV "+$1->var_symbol+", 0\n";
+							$$->code += "JMP "+label2+"\n";
+							$$->code += label1+":\nCMP "+$3->var_symbol+", 0\n";
+							$$->code += "JNE "+label3+"\n";
+							$$->code += "MOV "+$1->var_symbol+", 0\n";
+							$$->code += "JMP "+label2+"\n";
+							$$->code += label3+":\nMOV "+$1->var_symbol+", 1\n";
+							$$->code += label2+":\n\n";
+						}
+
+						$$->var_symbol = $1->var_symbol;
 
 						logFile<<s<<"\n\n";
 
