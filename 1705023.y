@@ -26,7 +26,7 @@ ofstream codeFile("code.asm");
 int var_count = 0;
 int curr_offset = 0;
 stack<int> prev_offset;
-string data_seg = ".DATA\n";
+string data_seg = "";
 
 int max_temp = 0;
 int temp_count = 0;
@@ -505,8 +505,9 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						$$->code = $2->getName()+" PROC\n";
 						if($2->getName()=="main"){
 							$$->code += "MOV AX,@DATA\n";
-							$$->code += "MOV DS,AX\n";
+							$$->code += "MOV DS,AX\n\n";
 						}
+						$$->code += "PUSH BP\nMOV BP,SP\n\n";
 
 						delete $1;
 					}
@@ -565,7 +566,7 @@ func_definition : func_def_start compound_end
 						$$ = new SymbolInfo(func_str,"func_def");
 						logFile<<"\n"<<func_str<<"\n\n";
 
-						$$->code = $1->code + $2->code;
+						$$->code = $1->code + $2->code + "POP BP\n\n";
 						if($1->getName()=="main"){
 							$$->code += "MOV AH,4CH\n";
 							$$->code += "INT 21H\n";
