@@ -21,6 +21,7 @@ SymbolTable* symTab = new SymbolTable(n,globalScope);
 
 ofstream errorFile("error.txt");
 ofstream logFile("log.txt");
+ofstream codeFile("code.asm");
 
 int var_count = 0;
 int curr_offset = 0;
@@ -180,8 +181,21 @@ start : program
 				
 				symTab->printAllScope(logFile);
 
+				for(int i=0;i<=max_temp;i++)
+					data_seg += "t"+to_string(i)+" DW ?\n";
+
 				logFile<<"Total lines : "<<yylineno-1<<endl;
 				logFile<<"Total errors : "<<error_count<<endl;
+
+				if(error_count==0){
+					codeFile<<".MODEL SMALL\n\n";
+					codeFile<<".STACK 100H\n\n";
+					codeFile<<".DATA\n\n";
+					codeFile<<data_seg<<"\n";
+					codeFile<<".CODE\n\n";
+					codeFile<<$1->code<<"\n";
+					codeFile<<"END MAIN";
+				}
 			}
 	;
 
@@ -191,6 +205,7 @@ program : program unit
 
 				string s = $1->getName()+"\n"+$2->getName();
 				$$ = new SymbolInfo(s,"proc");
+				$$->code = $1->code + $2->code;
 
 				logFile<<"\n"<<s<<"\n\n";
 
@@ -203,6 +218,7 @@ program : program unit
 
 			string s = $1->getName();
 			$$ = new SymbolInfo(s,"proc");
+			$$->code = $1->code;
 
 			logFile<<"\n"<<s<<"\n\n";
 
@@ -549,12 +565,12 @@ func_definition : func_def_start compound_end
 						$$ = new SymbolInfo(func_str,"func_def");
 						logFile<<"\n"<<func_str<<"\n\n";
 
-						$$->code = $1->code;
+						$$->code = $1->code + $2->code;
 						if($1->getName()=="main"){
 							$$->code += "MOV AH,4CH\n";
 							$$->code += "INT 21H\n";
 						}
-						$$->code += $1->getName()+" ENDP\n";
+						$$->code += $1->getName()+" ENDP\n\n";
 
 						symTab->exitScope();
 					}
@@ -1585,12 +1601,11 @@ unary_expression : ADDOP unary_expression
 					else{
 						$$ = new SymbolInfo($1->getName(),"unary_exp");
 						$$->setDataType($1->getDataType());
+						$$->var_symbol = $1->var_symbol;
+						$$->code = $1->code;
 
 						delete $1;
 					}
-
-					$$->var_symbol = $1->var_symbol;
-					$$->code = $1->code;
 				}
 		 ;
 	
