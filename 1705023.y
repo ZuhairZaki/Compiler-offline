@@ -28,7 +28,7 @@ string currFunc;
 int var_count = 0;
 int curr_offset = 0;
 stack<int> prev_offset;
-string data_seg = "";
+string data_seg = "NEWLINE DB 13, 10, '$'\n\n";
 
 int max_temp = 0;
 int temp_count = 0;
@@ -165,6 +165,20 @@ SymbolInfo* paramInsert(SymbolInfo* head,SymbolInfo* s)
 	return head;
 }
 
+void writePrintProc(ofstream& outFile)
+{
+	outFile<<"; printf function\n\n";
+	outFile<<"printf PROC\n\nPUSH BP\nMOV BP, SP\n\n";
+	outFile<<"XOR CX, CX\nMOV BX, 10\n\n";
+	outFile<<"MOV AX, WORD PTR[BP+4]\nCMP AX, 0\nJGE GET_DIGITS\n";
+	outFile<<"PUSH AX\nMOV AH, 2\nMOV DL, '-'\nINT 21H\nPOP AX\nNEG AX\n";
+	outFile<<"GET_DIGITS:\nXOR DX, DX\nDIV BX\nPUSH DX\nINC CX\n";
+	outFile<<"CMP AX, 0\nJNE GET_DIGITS\nMOV AH, 2\n";
+	outFile<<"PRINT_DIGITS:\nPOP DX\nADD DL, 30H\nINT 21H\nLOOP PRINT_DIGITS\n";
+	outFile<<"MOV AH, 9\nLEA DX, NEWLINE\nINT 21H\n";
+	outFile<<"POP BP\nRET 2\n\nprintf ENDP\n\n";
+}
+
 
 %}
 
@@ -196,6 +210,7 @@ start : program
 					codeFile<<data_seg<<"\n";
 					codeFile<<".CODE\n\n";
 					codeFile<<$1->code;
+					writePrintProc(codeFile);
 					codeFile<<"END MAIN";
 				}
 			}
@@ -576,7 +591,8 @@ func_definition : func_def_start compound_end
 						logFile<<"\n"<<func_str<<"\n\n";
 
 						string end_label = "END_"+$1->getName();
-						$$->code = $1->code + $2->code;
+						$$->code = "; "+s+"\n\n";
+						$$->code += $1->code + $2->code;
 						$$->code += end_label + ":\nPOP BP\n";
 
 						if($1->getName()=="main"){
@@ -1080,6 +1096,11 @@ statement : var_declaration
 					logFile<<"Error at line "<<yylineno<<": Function "<<$3->getName()<<" called without parentheses"<<endl<<endl;
 				}
 
+				$$->code = "SUB SP, "+to_string(curr_offset)+"\n";
+				$$->code += "PUSH "+$3->var_symbol+"\n";
+				$$->code += "CALL printf\n";
+				$$->code += "MOV SP, BP\n\n";
+
 				logFile<<s<<"\n\n";
 			}
 	  | RETURN expression SEMICOLON
@@ -1089,7 +1110,8 @@ statement : var_declaration
 				string s = "return "+$2->getName()+";";
 				$$ = new SymbolInfo(s,"stmt");
 
-				$$->code = "; "+s+"\n\n";
+				$$->code = $2->code;
+				$$->code += "; "+s+"\n\n";
 				$$->code += "MOV AX, "+$2->var_symbol+"\n";
 				$$->code += "JMP END_"+currFunc+"\n\n";
 
@@ -1668,15 +1690,20 @@ factor  : variable {
 					string varType = $1->getDataType();
 
 					string s = "";
+					string code_seg = "";
 					SymbolInfo* arg_start = $3;
 					while(arg_start!=NULL){
 						s += arg_start->getName();
+						code_seg += arg_start->code;
 						arg_start = arg_start->nextInfoObj;
 						if(arg_start!=NULL)
 							s += ",";
 					}
 					string fac_name = $1->getName()+"("+s+")";
 					$$ = new SymbolInfo(fac_name,"factor");
+					$$->code = code_seg;
+					$$->code += "; "+fac_name+"\n\n";
+					$$->code += "SUB SP, "+to_string(curr_offset)+"\n";
 
 					if(varType=="NO_TYPE"){
 						error_count++;
@@ -1730,6 +1757,18 @@ factor  : variable {
 							}
 						}
 					}
+
+					arg_start = $3;
+					while(arg_start!=NULL){
+						$$->code += "PUSH "+arg_start->var_symbol+"\n";
+						temp_count--;
+						arg_start = arg_start->nextInfoObj;
+					}
+
+					$$->code += "CALL "+$1->getName()+"\n";
+					$$->code += "MOV SP, BP\n";
+					$$->var_symbol = createTempVar();
+					$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
 					$$->setDataType(varType);
 
@@ -1786,7 +1825,8 @@ factor  : variable {
 				$$->var_symbol = createTempVar();
 				$$->code = $1->code;
 				$$->code += "ADD "+$1->var_symbol+", 1\n";
-				$$->code += "MOV "+$$->var_symbol+", "+$1->var_symbol+"\n\n";
+				$$->code += "MOV AX, "+$1->var_symbol+"\n\n";
+				$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
 				logFile<<"\n"<<s<<"\n\n";
 
@@ -1806,7 +1846,8 @@ factor  : variable {
 				$$->var_symbol = createTempVar();
 				$$->code = $1->code;
 				$$->code = "SUB "+$1->var_symbol+", 1\n";
-				$$->code += "MOV "+$$->var_symbol+", "+$1->var_symbol+"\n\n";
+				$$->code += "MOV AX, "+$1->var_symbol+"\n\n";
+				$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
 				logFile<<"\n"<<s<<"\n\n";
 
@@ -1845,6 +1886,8 @@ arguments : arguments COMMA logic_expression
 		  	{
 				$$ = new SymbolInfo($1->getName(),"args");
 				$$->setDataType($1->getDataType());
+				$$->code = $1->code;
+				$$->var_symbol = $1->var_symbol;
 
 				logFile<<"Line "<<yylineno<<": arguments : logic_expression"<<endl;
 				logFile<<"\n"<<$1->getName()<<"\n\n";

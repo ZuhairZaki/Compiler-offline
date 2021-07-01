@@ -41,6 +41,11 @@ public:
         isFunc = false;
         isDefined = false;
         paramlist = NULL;
+
+        code = "";
+        var_symbol = "no_address";
+        var_scope = "no_scope";
+        addr = -1;
     }
 
     void setName(string new_name){
