@@ -23,6 +23,8 @@ ofstream errorFile("error.txt");
 ofstream logFile("log.txt");
 ofstream codeFile("code.asm");
 
+string currFunc;
+
 int var_count = 0;
 int curr_offset = 0;
 stack<int> prev_offset;
@@ -181,7 +183,7 @@ start : program
 				
 				symTab->printAllScope(logFile);
 
-				for(int i=0;i<=max_temp;i++)
+				for(int i=0;i<max_temp;i++)
 					data_seg += "t"+to_string(i)+" DW ?\n";
 
 				logFile<<"Total lines : "<<yylineno-1<<endl;
@@ -193,7 +195,7 @@ start : program
 					codeFile<<".DATA\n\n";
 					codeFile<<data_seg<<"\n";
 					codeFile<<".CODE\n\n";
-					codeFile<<$1->code<<"\n";
+					codeFile<<$1->code;
 					codeFile<<"END MAIN";
 				}
 			}
@@ -424,8 +426,8 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						funcParam = $4;
 						while(funcParam!=NULL){
 							funcParam->var_scope = "param";
-							funcParam->addr = n;
-							funcParam->var_symbol = "WORD PTR[BP+"+to_string(n)+"]";
+							funcParam->addr = 2*(no_param+1);
+							funcParam->var_symbol = "WORD PTR[BP+"+to_string(funcParam->addr)+"]";
 
 							if(funcParam->getName()=="NO_NAME"){
 								error_count++;
@@ -443,8 +445,10 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 								symTab->Insert(paramObj);
 							}
 							funcParam = funcParam->nextInfoObj;
-							n--;
+							no_param--;
 						}
+
+						currFunc = $2->getName();
 
 						$$ = new SymbolInfo($2->getName(),"ID");
 						$$->setDataType($1->getName());
@@ -500,6 +504,8 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 
 						symTab->enterScope();
 
+						currFunc = $2->getName();
+
 						$$ = new SymbolInfo($2->getName(),"ID");
 						$$->setDataType($1->getName());
 						$$->code = $2->getName()+" PROC\n";
@@ -541,8 +547,11 @@ func_definition : func_def_start compound_end
 							logFile<<"Line "<<yylineno<<": func_definition :type_specifier ID LPAREN RPAREN compound_statement"<<endl;
 						}
 
+						int no_param = 0;
 						s += "(";
 						while(funcParam!=NULL){
+							no_param++;
+
 							string paramType = funcParam->getDataType();
 							if(paramType=="INT"){
 								s += "int ";
@@ -566,12 +575,24 @@ func_definition : func_def_start compound_end
 						$$ = new SymbolInfo(func_str,"func_def");
 						logFile<<"\n"<<func_str<<"\n\n";
 
-						$$->code = $1->code + $2->code + "POP BP\n\n";
+						string end_label = "END_"+$1->getName();
+						$$->code = $1->code + $2->code;
+						$$->code += end_label + ":\nPOP BP\n";
+
 						if($1->getName()=="main"){
 							$$->code += "MOV AH,4CH\n";
-							$$->code += "INT 21H\n";
+							$$->code += "INT 21H\n\n";
 						}
+						else{
+							$$->code += "RET ";
+							if(no_param>0)
+								$$->code += to_string(no_param+1);
+							$$->code += "\n\n";
+						}
+
 						$$->code += $1->getName()+" ENDP\n\n";
+
+						curr_offset = 0;
 
 						symTab->exitScope();
 					}
@@ -936,6 +957,7 @@ statement : var_declaration
 			string label2 = createNewLabel();
 
 			$$->code = $3->code;
+			$$->code += "; for("+$3->getName()+$4->getName()+$5->getName()+")\n\n";
 			$$->code += "JMP "+label1+"\n";
 			$$->code += label2+":\n";
 			$$->code += $7->code;
@@ -964,6 +986,7 @@ statement : var_declaration
 				string label1 = createNewLabel();
 				
 				$$->code = $3->code;
+				$$->code += "; if("+$3->getName()+")\n\n";
 				$$->code += "CMP "+$3->var_symbol+", 0\n";
 				$$->code += "JE "+label1+"\n";
 				$$->code += $5->code;
@@ -987,6 +1010,7 @@ statement : var_declaration
 				string label2 = createNewLabel();
 				
 				$$->code = $3->code;
+				$$->code += "; if("+$3->getName()+")\n\n";
 				$$->code += "CMP "+$3->var_symbol+", 0\n";
 				$$->code += "JE "+label1+"\n";
 				$$->code += $5->code;
@@ -1012,8 +1036,9 @@ statement : var_declaration
 
 				string label1 = createNewLabel();
 				string label2 = createNewLabel();
-
-				$$->code = "JMP "+label1+"\n";
+			
+                $$->code = "; while("+$3->getName()+")\n\n";
+				$$->code += "JMP "+label1+"\n";
 				$$->code += label2+":\n";
 				$$->code += $5->code;
 				$$->code += label1+":\n";
@@ -1063,6 +1088,12 @@ statement : var_declaration
 
 				string s = "return "+$2->getName()+";";
 				$$ = new SymbolInfo(s,"stmt");
+
+				$$->code = "; "+s+"\n\n";
+				$$->code += "MOV AX, "+$2->var_symbol+"\n";
+				$$->code += "JMP END_"+currFunc+"\n\n";
+
+				temp_count--;
 
 				logFile<<"\n"<<s<<"\n\n";
 
@@ -1182,7 +1213,8 @@ expression : logic_expression
 
 					$$ = new SymbolInfo($1->getName(),"expr");
 					$$->setDataType($1->getDataType());
-					$$->code = $1->code;
+					$$->code = "; "+$1->getName()+"\n\n";
+					$$->code += $1->code;
 					$$->var_symbol = $1->var_symbol;
 
 					logFile<<"\n"<<$1->getName()<<"\n\n";
@@ -1199,7 +1231,9 @@ expression : logic_expression
 					string s = $1->getName()+" = "+$3->getName();
 					$$ = new SymbolInfo(s,"expr");
 					$$->setDataType(expType);
-					$$->code = $3->code;
+					$$->code = "; "+s+"\n\n";
+					$$->code += $1->code;
+					$$->code += $3->code;
 					$$->code += "MOV AX, "+$3->var_symbol+"\n";
 					$$->code += "MOV "+$1->var_symbol+", AX\n\n";
 					$$->var_symbol = $3->var_symbol;
