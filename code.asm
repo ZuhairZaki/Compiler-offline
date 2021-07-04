@@ -81,6 +81,8 @@ MOV t1, AX
 MOV SI, t1
 SHL SI, 1
 
+PUSH SI
+
 MOV AX, WORD PTR[BP+4]
 MOV t1, AX
 
@@ -97,6 +99,8 @@ PUSH t1
 CALL fibonacci
 POP t0
 MOV t1, AX
+
+POP SI
 
 MOV AX, t1
 MOV var0[SI], AX
@@ -155,6 +159,8 @@ MOV t1, AX
 MOV SI, t1
 SHL SI, 1
 
+PUSH SI
+
 MOV AX, WORD PTR[BP+4]
 MOV t1, AX
 
@@ -172,12 +178,25 @@ CALL fibonacci
 POP t0
 MOV t1, AX
 
+POP SI
+
 MOV AX, t1
 MOV var0[SI], AX
 
 L5:
 
-; fib[n-1]+fib[n-2]
+; fib[n] = fib[n-1]+fib[n-2]
+
+; n
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
+
+
+MOV SI, t0
+SHL SI, 1
+
+PUSH SI
 
 ; n-1
 
@@ -219,7 +238,26 @@ MOV AX, t0
 ADD AX, t1
 MOV t0, AX
 
-; return fib[n-1]+fib[n-2];
+POP SI
+
+MOV AX, t0
+MOV var0[SI], AX
+
+; fib[n]
+
+; n
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
+
+
+MOV SI, t0
+SHL SI, 1
+
+MOV AX, var0[SI]
+MOV t0, AX
+
+; return fib[n];
 
 MOV AX, t0
 JMP END_fibonacci
@@ -249,7 +287,11 @@ MOV t0, 0
 MOV SI, t0
 SHL SI, 1
 
+PUSH SI
+
 MOV t0, 1
+
+POP SI
 
 MOV AX, t0
 MOV var0[SI], AX
@@ -264,7 +306,11 @@ MOV t0, 1
 MOV SI, t0
 SHL SI, 1
 
+PUSH SI
+
 MOV t0, 1
+
+POP SI
 
 MOV AX, t0
 MOV var0[SI], AX
@@ -291,7 +337,11 @@ MOV t3, AX
 MOV SI, t3
 SHL SI, 1
 
+PUSH SI
+
 MOV t3, 0
+
+POP SI
 
 MOV AX, t3
 MOV var0[SI], AX

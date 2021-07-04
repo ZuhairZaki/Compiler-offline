@@ -1259,7 +1259,9 @@ expression : logic_expression
 					$$->setDataType(expType);
 					$$->code = "; "+s+"\n\n";
 					$$->code += $1->code;
+					if($1->getType()=="arr") $$->code += "PUSH SI\n\n";
 					$$->code += $3->code;
+					if($1->getType()=="arr") $$->code += "POP SI\n\n";
 					$$->code += "MOV AX, "+$3->var_symbol+"\n";
 					$$->code += "MOV "+$1->var_symbol+", AX\n\n";
 					$$->var_symbol = $3->var_symbol;
@@ -1779,7 +1781,7 @@ factor  : variable {
 					$$->code += argpass_code;
 
 					$$->code += "CALL "+$1->getName()+"\n";
-
+					
 					for(int i=temp_count-1;i>=0;i--)
 						$$->code += "POP t"+to_string(i)+"\n";
 
