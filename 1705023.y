@@ -1099,7 +1099,8 @@ statement : var_declaration
 					logFile<<"Error at line "<<yylineno<<": Function "<<$3->getName()<<" called without parentheses"<<endl<<endl;
 				}
 
-				$$->code = "SUB SP, "+to_string(curr_offset)+"\n";
+				$$->code = "; "+s+"\n\n";
+				$$->code += "SUB SP, "+to_string(curr_offset)+"\n";
 				$$->code += "PUSH "+$3->var_symbol+"\n";
 				$$->code += "CALL printf\n";
 				$$->code += "MOV SP, BP\n\n";
@@ -1826,7 +1827,7 @@ factor  : variable {
 				$$->setDataType("FLOAT");
 
 				$$->var_symbol = createTempVar();
-				$$->code = "MOV "+$$->var_symbol+", "+$$->getName()+"\n\n";
+				$$->code = "MOV "+$$->var_symbol+", "+to_string(stoi($$->getName()))+"\n\n";
 
 				logFile<<"\n"<<$1->getName()<<"\n\n";
 			}
@@ -1842,8 +1843,8 @@ factor  : variable {
 
 				$$->var_symbol = createTempVar();
 				$$->code = $1->code;
-				$$->code += "ADD "+$1->var_symbol+", 1\n";
 				$$->code += "MOV AX, "+$1->var_symbol+"\n\n";
+				$$->code += "ADD "+$1->var_symbol+", 1\n";
 				$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
 				logFile<<"\n"<<s<<"\n\n";
@@ -1863,8 +1864,8 @@ factor  : variable {
 
 				$$->var_symbol = createTempVar();
 				$$->code = $1->code;
-				$$->code = "SUB "+$1->var_symbol+", 1\n";
 				$$->code += "MOV AX, "+$1->var_symbol+"\n\n";
+				$$->code = "SUB "+$1->var_symbol+", 1\n";
 				$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
 				logFile<<"\n"<<s<<"\n\n";
