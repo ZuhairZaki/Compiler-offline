@@ -32,6 +32,17 @@ MOV BP,SP
 
 ; fib[n-1]==0
 
+; n-1
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
+
+MOV t1, 1
+
+MOV AX, t0
+SUB AX, t1
+MOV t0, AX
+
 MOV SI, t0
 SHL SI, 1
 
@@ -53,6 +64,38 @@ L1:
 
 CMP t0, 0
 JE L2
+; fib[n-1] = fibonacci(n-1)
+
+; n-1
+
+MOV AX, WORD PTR[BP+4]
+MOV t1, AX
+
+MOV t2, 1
+
+MOV AX, t1
+SUB AX, t2
+MOV t1, AX
+
+MOV AX, WORD PTR[BP+4]
+MOV t2, AX
+
+MOV t3, 1
+
+MOV AX, t2
+SUB AX, t3
+MOV t2, AX
+
+; fibonacci(n-1)
+
+PUSH t0
+PUSH t1
+PUSH t2
+CALL fibonacci
+POP t1
+POP t0
+MOV t2, AX
+
 MOV SI, t1
 SHL SI, 1
 
@@ -65,6 +108,17 @@ MOV t1, AX
 L2:
 
 ; fib[n-2]==0
+
+; n-2
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
+
+MOV t1, 2
+
+MOV AX, t0
+SUB AX, t1
+MOV t0, AX
 
 MOV SI, t0
 SHL SI, 1
@@ -87,6 +141,38 @@ L4:
 
 CMP t0, 0
 JE L5
+; fib[n-2] = fibonacci(n-2)
+
+; n-2
+
+MOV AX, WORD PTR[BP+4]
+MOV t1, AX
+
+MOV t2, 2
+
+MOV AX, t1
+SUB AX, t2
+MOV t1, AX
+
+MOV AX, WORD PTR[BP+4]
+MOV t2, AX
+
+MOV t3, 2
+
+MOV AX, t2
+SUB AX, t3
+MOV t2, AX
+
+; fibonacci(n-2)
+
+PUSH t0
+PUSH t1
+PUSH t2
+CALL fibonacci
+POP t1
+POP t0
+MOV t2, AX
+
 MOV SI, t1
 SHL SI, 1
 
@@ -98,6 +184,51 @@ MOV t1, AX
 
 L5:
 
+; fib[n] = fib[n-1]+fib[n-2]
+
+; n
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
+
+; n-1
+
+MOV AX, WORD PTR[BP+4]
+MOV t1, AX
+
+MOV t2, 1
+
+MOV AX, t1
+SUB AX, t2
+MOV t1, AX
+
+MOV SI, t1
+SHL SI, 1
+
+MOV AX, var0[SI]
+MOV t1, AX
+
+; n-2
+
+MOV AX, WORD PTR[BP+4]
+MOV t2, AX
+
+MOV t3, 2
+
+MOV AX, t2
+SUB AX, t3
+MOV t2, AX
+
+MOV SI, t2
+SHL SI, 1
+
+MOV AX, var0[SI]
+MOV t2, AX
+
+MOV AX, t1
+ADD AX, t2
+MOV t1, AX
+
 MOV SI, t0
 SHL SI, 1
 
@@ -108,6 +239,11 @@ MOV AX, t1
 MOV t0, AX
 
 ; fib[n]
+
+; n
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
 
 MOV SI, t0
 SHL SI, 1
@@ -135,6 +271,14 @@ MOV DS,AX
 PUSH BP
 MOV BP,SP
 
+; fib[0] = 1
+
+; 0
+
+MOV t0, 0
+
+MOV t1, 1
+
 MOV SI, t0
 SHL SI, 1
 
@@ -143,6 +287,14 @@ MOV var0[SI], AX
 
 MOV AX, t1
 MOV t0, AX
+
+; fib[1] = 1
+
+; 1
+
+MOV t0, 1
+
+MOV t1, 1
 
 MOV SI, t0
 SHL SI, 1
@@ -164,6 +316,15 @@ MOV WORD PTR[BP-4], AX
 
 JMP L8
 L9:
+; fib[i] = 0
+
+; i
+
+MOV AX, WORD PTR[BP-4]
+MOV t3, AX
+
+MOV t4, 0
+
 MOV SI, t3
 SHL SI, 1
 
@@ -235,6 +396,11 @@ MOV WORD PTR[BP-4], AX
 JMP L12
 L13:
 ; y = fib[i]
+
+; i
+
+MOV AX, WORD PTR[BP-4]
+MOV t3, AX
 
 MOV SI, t3
 SHL SI, 1

@@ -1221,7 +1221,6 @@ variable : ID
 			$$->code = $3->code;
 			$$->idx = $3->var_symbol;
 			$$->var_symbol = $1->var_symbol+"[SI]";
-			
 
 			logFile<<s<<"\n\n";
 
@@ -1258,7 +1257,7 @@ expression : logic_expression
 					$$->code += $1->code;
 					$$->code += $3->code;
 					if($1->getType()=="arr"){
-						$$->code = "MOV SI, "+$1->idx+"\n";
+						$$->code += "MOV SI, "+$1->idx+"\n";
 						$$->code += "SHL SI, 1\n\n";
 					}
 					$$->code += "MOV AX, "+$3->var_symbol+"\n";
@@ -1690,7 +1689,7 @@ factor  : variable {
 
 						$$->code = $1->code;
 						if($1->getType()=="arr"){
-							$$->code = "MOV SI, "+$1->idx+"\n";
+							$$->code += "MOV SI, "+$1->idx+"\n";
 							$$->code += "SHL SI, 1\n\n";
 							temp_count--;
 						}
@@ -1856,7 +1855,7 @@ factor  : variable {
 
 				$$->code = $1->code;
 				if($1->getType()=="arr"){
-					$$->code = "MOV SI, "+$1->idx+"\n";
+					$$->code += "MOV SI, "+$1->idx+"\n";
 					$$->code += "SHL SI, 1\n\n";
 					temp_count--;
 				}
@@ -1882,7 +1881,7 @@ factor  : variable {
 
 				$$->code = $1->code;
 				if($1->getType()=="arr"){
-					$$->code = "MOV SI, "+$1->idx+"\n";
+					$$->code += "MOV SI, "+$1->idx+"\n";
 					$$->code += "SHL SI, 1\n\n";
 					temp_count--;
 				}
