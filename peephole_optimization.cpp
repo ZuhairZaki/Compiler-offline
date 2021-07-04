@@ -28,9 +28,15 @@ void optimizeCode(ifstream& ifs)
 
         if(instruction == "MOV"){
             getline(ss,tmp,',');
-            stringstream(tmp)>>r1;
-            getline(ss,tmp);
-            stringstream(tmp)>>r2;
+
+            stringstream stemp(tmp);
+            stemp>>r1;
+            if(r1=="WORD")
+                stemp>>r1;
+
+            ss>>r2;
+            if(r2=="WORD")
+                ss>>r2;
 
             if(!((r1==reg1&&r2==reg2)||(r1==reg2&&r2==reg1))){
                 reg1=r1;
