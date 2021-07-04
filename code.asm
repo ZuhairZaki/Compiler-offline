@@ -75,6 +75,8 @@ MOV t4, AX
 L2:
 ; a--
 
+MOV AX, WORD PTR[BP-2]
+
 SUB WORD PTR[BP-2], 1
 MOV t3, AX
 

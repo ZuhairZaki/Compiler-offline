@@ -1887,7 +1887,7 @@ factor  : variable {
 				}
 				$$->var_symbol = createTempVar();
 				$$->code += "MOV AX, "+$1->var_symbol+"\n\n";
-				$$->code = "SUB "+$1->var_symbol+", 1\n";
+				$$->code += "SUB "+$1->var_symbol+", 1\n";
 				$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
 				logFile<<"\n"<<s<<"\n\n";
