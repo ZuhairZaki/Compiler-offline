@@ -1574,7 +1574,7 @@ term :	unary_expression
 					$$->code += "JL "+label1+"\n";
 					$$->code += "MOV DX, 0\n";
 					$$->code += "JMP "+label2+"\n";
-					$$->code += label1+":\nMOV DX, OFFFFH\n";
+					$$->code += label1+":\nMOV DX, 0FFFFH\n";
 					$$->code += label2+":\n";
 					$$->code += "MOV AX, "+$1->var_symbol+"\n";
 					$$->code += "IDIV "+$3->var_symbol+"\n";
