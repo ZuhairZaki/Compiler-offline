@@ -1,19 +1,16 @@
-int f(int a){
-    return 2*a;
-    a=9;
-}
+int a;
 
-int g(int a, int b){
-    int x;
-    x=f(a)+a+b;
-    return x;
+int fib(int n){
+	return fib(n-1)+fib(n-2);
 }
 
 int main(){
-    int a,b;
-    a=1;
-    b=2;
-    a=g(a,b);
-    println(a);
-    return 0;
+	int x;
+	
+	a = 8;
+	x = fib(a);
+	
+	println(a);
 }
+
+

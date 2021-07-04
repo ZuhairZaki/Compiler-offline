@@ -6,95 +6,72 @@
 
 NEWLINE DB 13, 10, '$'
 
-;int x;
+;int a;
+var0 DW ?
 
-;int a,b;
+;int x;
+; x WORD PTR[BP-2]
 
 t0 DW ?
 t1 DW ?
+t2 DW ?
 
 .CODE
 
-; int f(int a)
+; int fib(int n)
 
-f PROC
-; 2*a
+fib PROC
+PUSH BP
+MOV BP,SP
 
-MOV t0, 2
+; fib(n-1)+fib(n-2)
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
+
+MOV t1, 1
+
+MOV AX, t0
+SUB AX, t1
+MOV t0, AX
+
+; fib(n-1)
+
+PUSH t0
+CALL fib
+MOV t0, AX
 
 MOV AX, WORD PTR[BP+4]
 MOV t1, AX
 
+MOV t2, 2
+
+MOV AX, t1
+SUB AX, t2
+MOV t1, AX
+
+; fib(n-2)
+
+PUSH t0
+PUSH t1
+CALL fib
+POP t0
+MOV t1, AX
+
 MOV AX, t0
-IMUL t1
+ADD AX, t1
 MOV t0, AX
 
-; return 2*a;
+; return fib(n-1)+fib(n-2);
 
 MOV AX, t0
-JMP END_f
+JMP END_fib
 
-; a = 9
-
-MOV t0, 9
-
-MOV AX, t0
-MOV WORD PTR[BP+4], AX
-
-END_f:
+END_fib:
 POP BP
 RET 2
 
-f ENDP
-
-; int g(int a,int b)
-
-g PROC
-; x = f(a)+a+b
-
-MOV AX, WORD PTR[BP+6]
-MOV t0, AX
-
-; f(a)
-
-SUB SP, 2
-PUSH t0
-CALL f
-MOV SP, BP
-MOV t0, AX
-
-MOV AX, WORD PTR[BP+6]
-MOV t1, AX
-
-MOV AX, t0
-ADD AX, t1
-MOV t0, AX
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV AX, t0
-ADD AX, t1
-MOV t0, AX
-
-MOV AX, t0
-MOV WORD PTR[BP-2], AX
-
-; x
-
-MOV AX, WORD PTR[BP-2]
-MOV t0, AX
-
-; return x;
-
-MOV AX, t0
-JMP END_g
-
-END_g:
-POP BP
-RET 3
-
-g ENDP
+fib ENDP
 
 ; int main()
 
@@ -105,53 +82,33 @@ MOV DS,AX
 PUSH BP
 MOV BP,SP
 
-; a = 1
+; a = 8
 
-MOV t0, 1
-
-MOV AX, t0
-MOV WORD PTR[BP-2], AX
-
-; b = 2
-
-MOV t0, 2
+MOV t0, 8
 
 MOV AX, t0
-MOV WORD PTR[BP-4], AX
+MOV var0, AX
 
-; a = g(a,b)
+; x = fib(a)
 
-MOV AX, WORD PTR[BP-2]
+MOV AX, var0
 MOV t0, AX
 
-MOV AX, WORD PTR[BP-4]
-MOV t1, AX
+; fib(a)
 
-; g(a,b)
-
-SUB SP, 4
+SUB SP, 2
 PUSH t0
-PUSH t1
-CALL g
+CALL fib
 MOV SP, BP
 MOV t0, AX
 
 MOV AX, t0
 MOV WORD PTR[BP-2], AX
 
-SUB SP, 4
-PUSH WORD PTR[BP-2]
+SUB SP, 2
+PUSH var0
 CALL printf
 MOV SP, BP
-
-; 0
-
-MOV t0, 0
-
-; return 0;
-
-MOV AX, t0
-JMP END_main
 
 END_main:
 POP BP

@@ -469,6 +469,7 @@ func_def_start : type_specifier ID LPAREN parameter_list RPAREN LCURL
 						$$->setDataType($1->getName());
 						$$->paramlist = $4;
 						$$->code = $2->getName()+" PROC\n";
+						$$->code += "PUSH BP\nMOV BP,SP\n\n";
 
 						delete $1;
 					}
@@ -800,6 +801,8 @@ var_declaration : type_specifier declaration_list SEMICOLON
 
 										item->addr = curr_offset;				
 										item->var_symbol = "WORD PTR[BP-"+to_string(item->addr)+"]";
+
+										data_str += "; "+item->getName()+" "+item->var_symbol+"\n";
 									}
 								}
 								head = head->nextInfoObj;
@@ -1703,7 +1706,9 @@ factor  : variable {
 					$$ = new SymbolInfo(fac_name,"factor");
 					$$->code = code_seg;
 					$$->code += "; "+fac_name+"\n\n";
-					$$->code += "SUB SP, "+to_string(curr_offset)+"\n";
+
+					if(curr_offset>0)
+						$$->code += "SUB SP, "+to_string(curr_offset)+"\n";
 
 					if(varType=="NO_TYPE"){
 						error_count++;
@@ -1758,15 +1763,26 @@ factor  : variable {
 						}
 					}
 
+					string argpass_code = "";
 					arg_start = $3;
 					while(arg_start!=NULL){
-						$$->code += "PUSH "+arg_start->var_symbol+"\n";
+						argpass_code += "PUSH "+arg_start->var_symbol+"\n";
 						temp_count--;
 						arg_start = arg_start->nextInfoObj;
 					}
 
+					for(int i=0;i<temp_count;i++)
+						$$->code += "PUSH t"+to_string(i)+"\n";
+					$$->code += argpass_code;
+
 					$$->code += "CALL "+$1->getName()+"\n";
-					$$->code += "MOV SP, BP\n";
+
+					for(int i=temp_count-1;i>=0;i--)
+						$$->code += "POP t"+to_string(i)+"\n";
+
+					if(curr_offset>0)
+						$$->code += "MOV SP, BP\n";
+
 					$$->var_symbol = createTempVar();
 					$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
