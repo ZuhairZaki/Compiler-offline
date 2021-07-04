@@ -361,9 +361,9 @@ L7:
 CMP t1, 0
 JNE L9
 
-; x = 8
+; x = 9
 
-MOV t0, 8
+MOV t0, 9
 
 MOV AX, t0
 MOV WORD PTR[BP-2], AX
@@ -444,13 +444,6 @@ L11:
 
 CMP t1, 0
 JNE L13
-
-; printf(x);
-
-SUB SP, 4
-PUSH WORD PTR[BP-2]
-CALL printf
-MOV SP, BP
 
 END_main:
 POP BP

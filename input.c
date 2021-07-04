@@ -18,7 +18,7 @@ int main(){
 		fib[i]=0;
 	}
 	
-	x = 8;
+	x = 9;
 	x = fibonacci(x);
 	
 	for(i=0;i<10;i++){
@@ -26,8 +26,6 @@ int main(){
 		y = fib[i];
 		println(y);
 	}
-	
-	println(x);
 }
 
 
