@@ -20,6 +20,7 @@ t0 DW ?
 t1 DW ?
 t2 DW ?
 t3 DW ?
+t4 DW ?
 
 .CODE
 
@@ -58,6 +59,9 @@ SHL SI, 1
 MOV AX, t2
 MOV var0[SI], AX
 
+MOV AX, t2
+MOV t1, AX
+
 L2:
 
 ; fib[n-2]==0
@@ -89,6 +93,9 @@ SHL SI, 1
 MOV AX, t2
 MOV var0[SI], AX
 
+MOV AX, t2
+MOV t1, AX
+
 L5:
 
 MOV SI, t0
@@ -96,6 +103,9 @@ SHL SI, 1
 
 MOV AX, t1
 MOV var0[SI], AX
+
+MOV AX, t1
+MOV t0, AX
 
 ; fib[n]
 
@@ -131,11 +141,17 @@ SHL SI, 1
 MOV AX, t1
 MOV var0[SI], AX
 
+MOV AX, t1
+MOV t0, AX
+
 MOV SI, t0
 SHL SI, 1
 
 MOV AX, t1
 MOV var0[SI], AX
+
+MOV AX, t1
+MOV t0, AX
 
 ; i = 2
 
@@ -148,67 +164,70 @@ MOV WORD PTR[BP-4], AX
 
 JMP L8
 L9:
-MOV SI, t2
+MOV SI, t3
 SHL SI, 1
 
-MOV AX, t3
+MOV AX, t4
 MOV var0[SI], AX
+
+MOV AX, t4
+MOV t3, AX
 
 ; i++
 
 MOV AX, WORD PTR[BP-4]
 
 ADD WORD PTR[BP-4], 1
-MOV t1, AX
+MOV t2, AX
 
 L8:
 ; i<10
 
 MOV AX, WORD PTR[BP-4]
-MOV t0, AX
+MOV t1, AX
 
-MOV t1, 10
+MOV t2, 10
 
-MOV AX, t0
-CMP AX, t1
+MOV AX, t1
+CMP AX, t2
 JL L6
-MOV t0, 0
+MOV t1, 0
 JMP L7
 L6:
-MOV t0, 1
+MOV t1, 1
 L7:
 
-CMP t0, 0
+CMP t1, 0
 JNE L9
 
 ; x = 8
 
-MOV t-1, 8
+MOV t0, 8
 
-MOV AX, t-1
+MOV AX, t0
 MOV WORD PTR[BP-2], AX
 
 ; x = fibonacci(x)
 
 MOV AX, WORD PTR[BP-2]
-MOV t-2, AX
+MOV t0, AX
 
 ; fibonacci(x)
 
 SUB SP, 4
-PUSH t-2
+PUSH t0
 CALL fibonacci
 MOV SP, BP
-MOV t-2, AX
+MOV t0, AX
 
-MOV AX, t-2
+MOV AX, t0
 MOV WORD PTR[BP-2], AX
 
 ; i = 0
 
-MOV t-3, 0
+MOV t0, 0
 
-MOV AX, t-3
+MOV AX, t0
 MOV WORD PTR[BP-4], AX
 
 ; for(i = 0;i<10;i++)
@@ -217,13 +236,13 @@ JMP L12
 L13:
 ; y = fib[i]
 
-MOV SI, t-1
+MOV SI, t3
 SHL SI, 1
 
 MOV AX, var0[SI]
-MOV t-1, AX
+MOV t3, AX
 
-MOV AX, t-1
+MOV AX, t3
 MOV WORD PTR[BP-6], AX
 
 ; printf(y);
@@ -238,26 +257,26 @@ MOV SP, BP
 MOV AX, WORD PTR[BP-4]
 
 ADD WORD PTR[BP-4], 1
-MOV t-2, AX
+MOV t2, AX
 
 L12:
 ; i<10
 
 MOV AX, WORD PTR[BP-4]
-MOV t-3, AX
+MOV t1, AX
 
-MOV t-2, 10
+MOV t2, 10
 
-MOV AX, t-3
-CMP AX, t-2
+MOV AX, t1
+CMP AX, t2
 JL L10
-MOV t-3, 0
+MOV t1, 0
 JMP L11
 L10:
-MOV t-3, 1
+MOV t1, 1
 L11:
 
-CMP t-3, 0
+CMP t1, 0
 JNE L13
 
 ; printf(x);

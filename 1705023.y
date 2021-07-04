@@ -1263,9 +1263,14 @@ expression : logic_expression
 					}
 					$$->code += "MOV AX, "+$3->var_symbol+"\n";
 					$$->code += "MOV "+$1->var_symbol+", AX\n\n";
-					$$->var_symbol = $1->idx;
 
-					temp_count--;
+					if($1->getType()=="arr"){
+						$$->code += "MOV AX, "+$3->var_symbol+"\n";
+						$$->code += "MOV "+$1->idx+", AX\n\n";
+						$$->var_symbol = $1->idx;
+						temp_count--;
+					}
+					else $$->var_symbol = $3->var_symbol;
 
 					logFile<<"\n"<<s<<"\n\n";
 
