@@ -6,100 +6,19 @@
 
 NEWLINE DB 13, 10, '$'
 
-;int x;
-; x WORD PTR[BP-2]
-
-;int a,b;
+;int a,b,c,i;
 ; a WORD PTR[BP-2]
 ; b WORD PTR[BP-4]
+; c WORD PTR[BP-6]
+; i WORD PTR[BP-8]
 
 t0 DW ?
 t1 DW ?
+t2 DW ?
+t3 DW ?
+t4 DW ?
 
 .CODE
-
-; int f(int a)
-
-f PROC
-PUSH BP
-MOV BP,SP
-
-; 2*a
-
-MOV t0, 2
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV AX, t0
-IMUL t1
-MOV t0, AX
-
-; return 2*a;
-
-JMP END_f
-
-; a = 9
-
-MOV t0, 9
-
-MOV AX, t0
-MOV WORD PTR[BP+4], AX
-
-END_f:
-POP BP
-RET 2
-
-f ENDP
-
-; int g(int a,int b)
-
-g PROC
-PUSH BP
-MOV BP,SP
-
-; x = f(a)+a+b
-
-MOV AX, WORD PTR[BP+6]
-MOV t0, AX
-
-; f(a)
-
-SUB SP, 2
-PUSH t0
-CALL f
-MOV SP, BP
-MOV t0, AX
-
-MOV AX, WORD PTR[BP+6]
-MOV t1, AX
-
-MOV AX, t0
-ADD AX, t1
-MOV t0, AX
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV AX, t0
-ADD AX, t1
-MOV t0, AX
-
-MOV WORD PTR[BP-2], AX
-
-; x
-
-MOV t0, AX
-
-; return x;
-
-JMP END_g
-
-END_g:
-POP BP
-RET 3
-
-g ENDP
 
 ; int main()
 
@@ -110,54 +29,107 @@ MOV DS,AX
 PUSH BP
 MOV BP,SP
 
-; a = 1
+; b = 0
 
-MOV t0, 1
-
-MOV AX, t0
-MOV WORD PTR[BP-2], AX
-
-; b = 2
-
-MOV t0, 2
+MOV t0, 0
 
 MOV AX, t0
 MOV WORD PTR[BP-4], AX
 
-; a = g(a,b)
+; c = 1
 
-MOV AX, WORD PTR[BP-2]
-MOV t0, AX
+MOV t0, 1
+
+MOV AX, t0
+MOV WORD PTR[BP-6], AX
+
+; i = 0
+
+MOV t0, 0
+
+MOV AX, t0
+MOV WORD PTR[BP-8], AX
+
+; for(i = 0;i<4;i++)
+
+JMP L4
+L5:
+; a = 3
+
+MOV t3, 3
+
+MOV AX, t3
+MOV WORD PTR[BP-2], AX
+
+; while(a--)
+
+JMP L2
+L3:
+; b++
 
 MOV AX, WORD PTR[BP-4]
+
+ADD WORD PTR[BP-4], 1
+MOV t4, AX
+
+L2:
+; a--
+
+MOV AX, WORD PTR[BP-2]
+
+SUB WORD PTR[BP-2], 1
+MOV t3, AX
+
+CMP t3, 0
+JNE L3
+
+; i++
+
+MOV AX, WORD PTR[BP-8]
+
+ADD WORD PTR[BP-8], 1
+MOV t2, AX
+
+L4:
+; i<4
+
+MOV AX, WORD PTR[BP-8]
 MOV t1, AX
 
-; g(a,b)
+MOV t2, 4
 
-SUB SP, 4
-PUSH t0
-PUSH t1
-CALL g
-MOV SP, BP
-MOV t0, AX
+MOV AX, t1
+CMP AX, t2
+JL L0
+MOV t1, 0
+JMP L1
+L0:
+MOV t1, 1
+L1:
 
-MOV WORD PTR[BP-2], AX
+CMP t1, 0
+JNE L5
 
 ; printf(a);
 
-SUB SP, 4
+SUB SP, 8
 PUSH WORD PTR[BP-2]
 CALL printf
 MOV SP, BP
 
-; 0
+; printf(b);
 
-MOV t0, 0
+SUB SP, 8
+PUSH WORD PTR[BP-4]
+CALL printf
+MOV SP, BP
 
-; return 0;
+; printf(c);
 
-MOV AX, t0
-JMP END_main
+SUB SP, 8
+PUSH WORD PTR[BP-6]
+CALL printf
+MOV SP, BP
 
 END_main:
 POP BP
