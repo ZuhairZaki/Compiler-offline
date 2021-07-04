@@ -92,7 +92,6 @@ SHL SI, 1
 MOV AX, t1
 MOV WORD PTR[BP-10][SI], AX
 
-MOV AX, t1
 MOV t0, AX
 
 ; a&&b
@@ -158,7 +157,6 @@ SHL SI, 1
 MOV AX, t2
 MOV WORD PTR[BP-10][SI], AX
 
-MOV AX, t2
 MOV t1, AX
 
 L8:
