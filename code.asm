@@ -31,18 +31,6 @@ MOV BP,SP
 
 ; fib[n-1]==0
 
-; n-1
-
-MOV AX, WORD PTR[BP+4]
-MOV t0, AX
-
-MOV t1, 1
-
-MOV AX, t0
-SUB AX, t1
-MOV t0, AX
-
-
 MOV SI, t0
 SHL SI, 1
 
@@ -64,62 +52,15 @@ L1:
 
 CMP t0, 0
 JE L2
-; fib[n-1] = fibonacci(n-1)
-
-; n-1
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV t2, 1
-
-MOV AX, t1
-SUB AX, t2
-MOV t1, AX
-
-
 MOV SI, t1
 SHL SI, 1
 
-PUSH SI
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV t2, 1
-
-MOV AX, t1
-SUB AX, t2
-MOV t1, AX
-
-; fibonacci(n-1)
-
-PUSH t0
-PUSH t1
-CALL fibonacci
-POP t0
-MOV t1, AX
-
-POP SI
-
-MOV AX, t1
+MOV AX, t2
 MOV var0[SI], AX
 
 L2:
 
 ; fib[n-2]==0
-
-; n-2
-
-MOV AX, WORD PTR[BP+4]
-MOV t0, AX
-
-MOV t1, 2
-
-MOV AX, t0
-SUB AX, t1
-MOV t0, AX
-
 
 MOV SI, t0
 SHL SI, 1
@@ -142,114 +83,21 @@ L4:
 
 CMP t0, 0
 JE L5
-; fib[n-2] = fibonacci(n-2)
-
-; n-2
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV t2, 2
-
-MOV AX, t1
-SUB AX, t2
-MOV t1, AX
-
-
 MOV SI, t1
 SHL SI, 1
 
-PUSH SI
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV t2, 2
-
-MOV AX, t1
-SUB AX, t2
-MOV t1, AX
-
-; fibonacci(n-2)
-
-PUSH t0
-PUSH t1
-CALL fibonacci
-POP t0
-MOV t1, AX
-
-POP SI
-
-MOV AX, t1
+MOV AX, t2
 MOV var0[SI], AX
 
 L5:
 
-; fib[n] = fib[n-1]+fib[n-2]
-
-; n
-
-MOV AX, WORD PTR[BP+4]
-MOV t0, AX
-
-
 MOV SI, t0
 SHL SI, 1
-
-PUSH SI
-
-; n-1
-
-MOV AX, WORD PTR[BP+4]
-MOV t0, AX
-
-MOV t1, 1
-
-MOV AX, t0
-SUB AX, t1
-MOV t0, AX
-
-
-MOV SI, t0
-SHL SI, 1
-
-MOV AX, var0[SI]
-MOV t0, AX
-
-; n-2
-
-MOV AX, WORD PTR[BP+4]
-MOV t1, AX
-
-MOV t2, 2
 
 MOV AX, t1
-SUB AX, t2
-MOV t1, AX
-
-
-MOV SI, t1
-SHL SI, 1
-
-MOV AX, var0[SI]
-MOV t1, AX
-
-MOV AX, t0
-ADD AX, t1
-MOV t0, AX
-
-POP SI
-
-MOV AX, t0
 MOV var0[SI], AX
 
 ; fib[n]
-
-; n
-
-MOV AX, WORD PTR[BP+4]
-MOV t0, AX
-
 
 MOV SI, t0
 SHL SI, 1
@@ -277,42 +125,16 @@ MOV DS,AX
 PUSH BP
 MOV BP,SP
 
-; fib[0] = 1
-
-; 0
-
-MOV t0, 0
-
-
 MOV SI, t0
 SHL SI, 1
 
-PUSH SI
-
-MOV t0, 1
-
-POP SI
-
-MOV AX, t0
+MOV AX, t1
 MOV var0[SI], AX
 
-; fib[1] = 1
-
-; 1
-
-MOV t0, 1
-
-
 MOV SI, t0
 SHL SI, 1
 
-PUSH SI
-
-MOV t0, 1
-
-POP SI
-
-MOV AX, t0
+MOV AX, t1
 MOV var0[SI], AX
 
 ; i = 2
@@ -326,22 +148,8 @@ MOV WORD PTR[BP-4], AX
 
 JMP L8
 L9:
-; fib[i] = 0
-
-; i
-
-MOV AX, WORD PTR[BP-4]
-MOV t3, AX
-
-
-MOV SI, t3
+MOV SI, t2
 SHL SI, 1
-
-PUSH SI
-
-MOV t3, 0
-
-POP SI
 
 MOV AX, t3
 MOV var0[SI], AX
@@ -351,56 +159,56 @@ MOV var0[SI], AX
 MOV AX, WORD PTR[BP-4]
 
 ADD WORD PTR[BP-4], 1
-MOV t2, AX
+MOV t1, AX
 
 L8:
 ; i<10
 
 MOV AX, WORD PTR[BP-4]
-MOV t1, AX
+MOV t0, AX
 
-MOV t2, 10
+MOV t1, 10
 
-MOV AX, t1
-CMP AX, t2
+MOV AX, t0
+CMP AX, t1
 JL L6
-MOV t1, 0
+MOV t0, 0
 JMP L7
 L6:
-MOV t1, 1
+MOV t0, 1
 L7:
 
-CMP t1, 0
+CMP t0, 0
 JNE L9
 
 ; x = 8
 
-MOV t0, 8
+MOV t-1, 8
 
-MOV AX, t0
+MOV AX, t-1
 MOV WORD PTR[BP-2], AX
 
 ; x = fibonacci(x)
 
 MOV AX, WORD PTR[BP-2]
-MOV t0, AX
+MOV t-2, AX
 
 ; fibonacci(x)
 
 SUB SP, 4
-PUSH t0
+PUSH t-2
 CALL fibonacci
 MOV SP, BP
-MOV t0, AX
+MOV t-2, AX
 
-MOV AX, t0
+MOV AX, t-2
 MOV WORD PTR[BP-2], AX
 
 ; i = 0
 
-MOV t0, 0
+MOV t-3, 0
 
-MOV AX, t0
+MOV AX, t-3
 MOV WORD PTR[BP-4], AX
 
 ; for(i = 0;i<10;i++)
@@ -409,19 +217,13 @@ JMP L12
 L13:
 ; y = fib[i]
 
-; i
-
-MOV AX, WORD PTR[BP-4]
-MOV t3, AX
-
-
-MOV SI, t3
+MOV SI, t-1
 SHL SI, 1
 
 MOV AX, var0[SI]
-MOV t3, AX
+MOV t-1, AX
 
-MOV AX, t3
+MOV AX, t-1
 MOV WORD PTR[BP-6], AX
 
 ; printf(y);
@@ -436,26 +238,26 @@ MOV SP, BP
 MOV AX, WORD PTR[BP-4]
 
 ADD WORD PTR[BP-4], 1
-MOV t2, AX
+MOV t-2, AX
 
 L12:
 ; i<10
 
 MOV AX, WORD PTR[BP-4]
-MOV t1, AX
+MOV t-3, AX
 
-MOV t2, 10
+MOV t-2, 10
 
-MOV AX, t1
-CMP AX, t2
+MOV AX, t-3
+CMP AX, t-2
 JL L10
-MOV t1, 0
+MOV t-3, 0
 JMP L11
 L10:
-MOV t1, 1
+MOV t-3, 1
 L11:
 
-CMP t1, 0
+CMP t-3, 0
 JNE L13
 
 ; printf(x);

@@ -1218,12 +1218,9 @@ variable : ID
 			$$->setDataType(varType);
 			$$->setArrSize(n);
 
-			$$->code = $3->code+"\n";
-			$$->code += "MOV SI, "+$3->var_symbol+"\n";
-			$$->code += "SHL SI, 1\n\n";
+			$$->code = $3->code;
+			$$->idx = $3->var_symbol;
 			$$->var_symbol = $1->var_symbol+"[SI]";
-
-			temp_count--;
 			
 
 			logFile<<s<<"\n\n";
@@ -1259,12 +1256,16 @@ expression : logic_expression
 					$$->setDataType(expType);
 					$$->code = "; "+s+"\n\n";
 					$$->code += $1->code;
-					if($1->getType()=="arr") $$->code += "PUSH SI\n\n";
 					$$->code += $3->code;
-					if($1->getType()=="arr") $$->code += "POP SI\n\n";
+					if($1->getType()=="arr"){
+						$$->code = "MOV SI, "+$1->idx+"\n";
+						$$->code += "SHL SI, 1\n\n";
+					}
 					$$->code += "MOV AX, "+$3->var_symbol+"\n";
 					$$->code += "MOV "+$1->var_symbol+", AX\n\n";
-					$$->var_symbol = $3->var_symbol;
+					$$->var_symbol = $1->idx;
+
+					temp_count--;
 
 					logFile<<"\n"<<s<<"\n\n";
 
@@ -1682,8 +1683,13 @@ factor  : variable {
 						$$ = new SymbolInfo($1->getName(),"factor");
 						$$->setDataType(varType);
 
-						$$->var_symbol = createTempVar();
 						$$->code = $1->code;
+						if($1->getType()=="arr"){
+							$$->code = "MOV SI, "+$1->idx+"\n";
+							$$->code += "SHL SI, 1\n\n";
+							temp_count--;
+						}
+						$$->var_symbol = createTempVar();
 						$$->code += "MOV AX, "+$1->var_symbol+"\n";
 						$$->code += "MOV "+$$->var_symbol+", AX\n\n";
 
@@ -1843,8 +1849,13 @@ factor  : variable {
 				$$ = new SymbolInfo(s,"factor");
 				$$->setDataType(varType);
 
-				$$->var_symbol = createTempVar();
 				$$->code = $1->code;
+				if($1->getType()=="arr"){
+					$$->code = "MOV SI, "+$1->idx+"\n";
+					$$->code += "SHL SI, 1\n\n";
+					temp_count--;
+				}
+				$$->var_symbol = createTempVar();
 				$$->code += "MOV AX, "+$1->var_symbol+"\n\n";
 				$$->code += "ADD "+$1->var_symbol+", 1\n";
 				$$->code += "MOV "+$$->var_symbol+", AX\n\n";
@@ -1864,8 +1875,13 @@ factor  : variable {
 				$$ = new SymbolInfo(s,"factor");
 				$$->setDataType(varType);
 
-				$$->var_symbol = createTempVar();
 				$$->code = $1->code;
+				if($1->getType()=="arr"){
+					$$->code = "MOV SI, "+$1->idx+"\n";
+					$$->code += "SHL SI, 1\n\n";
+					temp_count--;
+				}
+				$$->var_symbol = createTempVar();
 				$$->code += "MOV AX, "+$1->var_symbol+"\n\n";
 				$$->code = "SUB "+$1->var_symbol+", 1\n";
 				$$->code += "MOV "+$$->var_symbol+", AX\n\n";

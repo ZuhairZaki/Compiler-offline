@@ -10,6 +10,7 @@ class SymbolInfo
 
 public:
     string code;
+    string idx;
     string var_symbol;
     string var_scope;
     int addr;
@@ -27,6 +28,7 @@ public:
         paramlist = NULL;
         
         code = "";
+        idx = "";
         var_symbol = "no_address";
         var_scope = "no_scope";
         addr = -1;
@@ -43,6 +45,7 @@ public:
         paramlist = NULL;
 
         code = "";
+        idx = "";
         var_symbol = "no_address";
         var_scope = "no_scope";
         addr = -1;
