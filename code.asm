@@ -6,9 +6,6 @@
 
 NEWLINE DB 13, 10, '$'
 
-;int a;
-var0 DW ?
-
 ;int x;
 ; x WORD PTR[BP-2]
 
@@ -23,6 +20,64 @@ t2 DW ?
 fib PROC
 PUSH BP
 MOV BP,SP
+
+; n==1||n==2
+
+MOV AX, WORD PTR[BP+4]
+MOV t0, AX
+
+MOV t1, 1
+
+MOV AX, t0
+CMP AX, t1
+JE L0
+MOV t0, 0
+JMP L1
+L0:
+MOV t0, 1
+L1:
+
+MOV AX, WORD PTR[BP+4]
+MOV t1, AX
+
+MOV t2, 2
+
+MOV AX, t1
+CMP AX, t2
+JE L2
+MOV t1, 0
+JMP L3
+L2:
+MOV t1, 1
+L3:
+
+CMP t0, 0
+JE L4
+MOV t0, 1
+JMP L5
+L4:
+CMP t1, 0
+JE L6
+MOV t0, 1
+JMP L5
+L6:
+MOV t0, 0
+L5:
+
+; if(n==1||n==2)
+
+CMP t0, 0
+JE L7
+; 1
+
+MOV t1, 1
+
+; return 1;
+
+MOV AX, t1
+JMP END_fib
+
+L7:
 
 ; fib(n-1)+fib(n-2)
 
@@ -82,19 +137,24 @@ MOV DS,AX
 PUSH BP
 MOV BP,SP
 
-; a = 8
+; x = 8
 
 MOV t0, 8
 
 MOV AX, t0
-MOV var0, AX
+MOV WORD PTR[BP-2], AX
 
-; x = fib(a)
+SUB SP, 2
+PUSH WORD PTR[BP-2]
+CALL printf
+MOV SP, BP
 
-MOV AX, var0
+; x = fib(x)
+
+MOV AX, WORD PTR[BP-2]
 MOV t0, AX
 
-; fib(a)
+; fib(x)
 
 SUB SP, 2
 PUSH t0
@@ -106,7 +166,7 @@ MOV AX, t0
 MOV WORD PTR[BP-2], AX
 
 SUB SP, 2
-PUSH var0
+PUSH WORD PTR[BP-2]
 CALL printf
 MOV SP, BP
 

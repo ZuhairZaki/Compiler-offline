@@ -1346,6 +1346,8 @@ logic_expression : rel_expression
 
 						$$->var_symbol = $1->var_symbol;
 
+						temp_count--;
+
 						logFile<<s<<"\n\n";
 
 						delete $1;

@@ -1,16 +1,19 @@
-int a;
 
 int fib(int n){
+	if(n==1||n==2)
+		return 1;
 	return fib(n-1)+fib(n-2);
 }
 
 int main(){
 	int x;
 	
-	a = 8;
-	x = fib(a);
+	x = 8;
+	println(x);
 	
-	println(a);
+	x = fib(x);
+	
+	println(x);
 }
 
 
